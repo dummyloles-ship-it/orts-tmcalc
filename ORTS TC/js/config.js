@@ -5,7 +5,7 @@
 
 // ---- Column definitions ----
 const COLUMNS = [
-    { key: 'select', label: 'Apply edits for' },
+    { key: 'select', label: 'Multi-edit' },
     { key: 'stop', label: 'Halt' },
     { key: 'station', label: 'Station' },
     { key: 'distPrev', label: 'Dist from prev (km)' },
@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS = {
     theme: 'theme-dark',
     defaultHalt: 2,
     defaultBuffer: 0,
-    defaultFolder: ''
+    defaultFolder: '',
+    defaultHaltEnabled: false
 };
 
 // ---- Global state ----

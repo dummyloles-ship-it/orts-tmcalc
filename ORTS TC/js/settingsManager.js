@@ -22,6 +22,9 @@ function loadSettings() {
             if (settings.defaultFolder) {
                 document.getElementById('defaultFolderSetting').value = settings.defaultFolder;
             }
+            if (settings.defaultHaltEnabled !== undefined) {
+                document.getElementById('defaultHaltEnabledSetting').checked = settings.defaultHaltEnabled;
+            }
             return settings;
         }
     } catch (e) { /* ignore */ }
@@ -33,7 +36,8 @@ function saveSettings() {
         theme: document.getElementById('themeSelect').value,
         defaultHalt: parseFloat(document.getElementById('defaultHaltSetting').value) || 0,
         defaultBuffer: parseFloat(document.getElementById('defaultBufferSetting').value) || 0,
-        defaultFolder: document.getElementById('defaultFolderSetting').value || ''
+        defaultFolder: document.getElementById('defaultFolderSetting').value || '',
+        defaultHaltEnabled: document.getElementById('defaultHaltEnabledSetting').checked
     };
     localStorage.setItem('timetableSettings', JSON.stringify(settings));
     // Apply theme
@@ -43,7 +47,12 @@ function saveSettings() {
     document.getElementById('defaultBuffer').value = settings.defaultBuffer;
     // If data loaded, apply new defaults
     if (window.timetableData && window.timetableData.length > 0) {
-        window.timetableData.forEach(row => {
+        window.timetableData.forEach((row, idx) => {
+            if (idx === 0) {
+                row.stop = true;
+            } else {
+                row.stop = settings.defaultHaltEnabled;
+            }
             row.halt = settings.defaultHalt;
             if (!row.isFirst) row.buffer = settings.defaultBuffer;
         });

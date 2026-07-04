@@ -35,24 +35,27 @@ function processData(rawPoints, defaultHaltVal, defaultBufferVal) {
     return { stations, speedLimits };
 }
 
-function buildTimetableData(stations, defaultHaltVal, defaultBufferVal) {
-    return stations.map((st, idx) => ({
-        station: st.name,
-        distOrigin: st.distance,
-        distPrev: idx === 0 ? 0 : st.distance - stations[idx - 1].distance,
-        arrival: 0,
-        departure: 0,
-        arrivalStr: '',
-        departureStr: '',
-        stop: true,
-        halt: defaultHaltVal,
-        buffer: defaultBufferVal,
-        isLast: idx === stations.length - 1,
-        isFirst: idx === 0,
-        stationPoints: st.points,
-        originPoints: idx === 0 ? null : stations[idx - 1].points,
-        calcDetails: null
-    }));
+function buildTimetableData(stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled) {
+    return stations.map((st, idx) => {
+        const isFirst = idx === 0;
+        return {
+            station: st.name,
+            distOrigin: st.distance,
+            distPrev: idx === 0 ? 0 : st.distance - stations[idx - 1].distance,
+            arrival: 0,
+            departure: 0,
+            arrivalStr: '',
+            departureStr: '',
+            stop: isFirst ? true : defaultHaltEnabled,
+            halt: defaultHaltVal,
+            buffer: defaultBufferVal,
+            isLast: idx === stations.length - 1,
+            isFirst: isFirst,
+            stationPoints: st.points,
+            originPoints: idx === 0 ? null : stations[idx - 1].points,
+            calcDetails: null
+        };
+    });
 }
 
 // Expose globally

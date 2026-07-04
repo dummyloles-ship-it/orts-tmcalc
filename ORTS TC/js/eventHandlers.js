@@ -105,7 +105,6 @@ function setupEventHandlers() {
         const ortsEvent = new CustomEvent('ortsPreviewRequested');
         document.dispatchEvent(ortsEvent);
         ortsModal.classList.add('active');
-        // Activate the first tab by default
         document.querySelector('.tab-btn[data-tab="tab1"]').click();
     });
 
@@ -120,9 +119,8 @@ function setupEventHandlers() {
         });
     });
 
-    // ---- ORTS Copy (single unified function) ----
+    // ---- ORTS Copy (unified) ----
     function copyActiveOrtsText() {
-        // Find the currently visible ORTS textarea
         const activeTextarea = document.querySelector('.tab-content.active textarea');
         if (!activeTextarea) {
             statusMsg.textContent = '⚠️ No ORTS preview active.';
@@ -136,7 +134,6 @@ function setupEventHandlers() {
         navigator.clipboard.writeText(text).then(() => {
             statusMsg.textContent = '✅ Copied to clipboard!';
         }).catch(() => {
-            // Fallback
             const textarea = document.createElement('textarea');
             textarea.value = text;
             document.body.appendChild(textarea);
@@ -147,7 +144,6 @@ function setupEventHandlers() {
         });
     }
 
-    // Attach copy to both ORTS copy buttons
     copyOrts1.addEventListener('click', copyActiveOrtsText);
     copyOrts2.addEventListener('click', copyActiveOrtsText);
 
@@ -231,7 +227,7 @@ function setupEventHandlers() {
     applyMultiHalt.addEventListener('click', () => {
         const indices = getSelectedStationIndices();
         if (indices.length === 0) {
-            statusMsg.textContent = '⚠️ No station rows selected. Check the boxes in the "Apply edits for" column.';
+            statusMsg.textContent = '⚠️ No station rows selected. Check the boxes in the "Multi-edit" column.';
             return;
         }
         const val = parseFloat(multiHalt.value) || 0;
@@ -248,7 +244,7 @@ function setupEventHandlers() {
     applyMultiBuffer.addEventListener('click', () => {
         const indices = getSelectedStationIndices();
         if (indices.length === 0) {
-            statusMsg.textContent = '⚠️ No station rows selected. Check the boxes in the "Apply edits for" column.';
+            statusMsg.textContent = '⚠️ No station rows selected. Check the boxes in the "Multi-edit" column.';
             return;
         }
         const val = parseFloat(multiBuffer.value) || 0;
@@ -299,7 +295,6 @@ function setupEventHandlers() {
 
     // ---- Table event delegation for dynamic elements ----
     document.addEventListener('click', (e) => {
-        // Calc buttons
         const calcBtn = e.target.closest('.calc-btn');
         if (calcBtn) {
             const idx = parseInt(calcBtn.dataset.idx);
@@ -319,6 +314,10 @@ function setupEventHandlers() {
             if (row) {
                 row.stop = e.target.checked;
                 if (!row.stop) row.halt = 0;
+                if (!row.stop && !row.isFirst) {
+                    row.arrivalStr = '';
+                    row.departureStr = '';
+                }
                 const recalcEvent = new CustomEvent('recalculate');
                 document.dispatchEvent(recalcEvent);
             }

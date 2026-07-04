@@ -28,14 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const points = e.detail.points;
         const defaultHaltVal = parseFloat(defaultHaltInput.value) || 0;
         const defaultBufferVal = parseFloat(defaultBufferInput.value) || 0;
+        const defaultHaltEnabled = document.getElementById('defaultHaltEnabledSetting')?.checked || false;
 
         // Process data
         const result = processData(points, defaultHaltVal, defaultBufferVal);
         window.stations = result.stations;
         window.speedLimits = result.speedLimits;
 
-        // Build timetable data
-        window.timetableData = buildTimetableData(window.stations, defaultHaltVal, defaultBufferVal);
+        // Build timetable data with defaultHaltEnabled
+        window.timetableData = buildTimetableData(window.stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled);
 
         // Initial schedule update
         updateSchedule(
@@ -135,15 +136,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getTableData() {
         const visible = getVisibleColumnsForCopy();
-        return window.timetableData.map(row => {
+        return window.timetableData.map((row, idx) => {
+            const isFirst = idx === 0;
             return visible.map(col => {
                 if (col.key === 'select') return '☑';
                 if (col.key === 'stop') return row.stop ? 'Yes' : 'No';
                 if (col.key === 'station') return row.station;
                 if (col.key === 'distPrev') return row.distPrev.toFixed(3);
                 if (col.key === 'distOrigin') return row.distOrigin.toFixed(3);
-                if (col.key === 'arrival') return row.arrivalStr || '';
-                if (col.key === 'departure') return row.departureStr || '';
+                if (col.key === 'arrival') {
+                    return (isFirst || row.stop) ? (row.arrivalStr || '') : '';
+                }
+                if (col.key === 'departure') {
+                    return (isFirst || row.stop) ? (row.departureStr || '') : '';
+                }
                 if (col.key === 'buffer') return row.isFirst ? '-' : (row.buffer || 0).toFixed(1);
                 if (col.key === 'halt') return (row.stop ? (row.halt || 0) : 0).toFixed(1);
                 if (col.key === 'calc') return '📊';
@@ -159,33 +165,32 @@ document.addEventListener('DOMContentLoaded', function() {
         return allRows.map(row => row.join('\t')).join('\n');
     }
 
-    /**
-     * Generate ORTS-style preview data.
-     * @param {boolean} includeStation - If true, include station name and tab before time range.
-     * @returns {string} - Newline-separated lines, each with format:
-     *   includeStation: "[STATION]\t[ARRIVAL-DEPARTURE]"
-     *   includeStation: false: "[ARRIVAL-DEPARTURE]"
-     */
     function getOrtsData(includeStation) {
-        const rows = window.timetableData.map(row => {
+        const lines = window.timetableData.map((row, idx) => {
+            const isFirst = idx === 0;
+
+            if (!isFirst && !row.stop) {
+                return '';
+            }
+
             const arr = row.arrivalStr || '';
             const dep = row.departureStr || '';
-            // Build the time range "AB:CD-EF:GH"
             let timeRange = '';
             if (arr && dep) {
                 timeRange = `${arr}-${dep}`;
             } else if (arr) {
-                timeRange = arr;  // fallback – shouldn't happen
+                timeRange = arr;
             } else if (dep) {
-                timeRange = dep;  // fallback
+                timeRange = dep;
             }
+
             if (includeStation) {
                 return `${row.station}\t${timeRange}`;
             } else {
                 return timeRange;
             }
         });
-        return rows.join('\n');
+        return lines.join('\n');
     }
 
     // Expose helpers for other modules

@@ -23,7 +23,8 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
             if (col.key === 'select') {
                 tbodyHtml += `<td><input type="checkbox" class="row-check" data-idx="${idx}" data-type="station" title="Select this station for multi-edit"></td>`;
             } else if (col.key === 'stop') {
-                tbodyHtml += `<td><input type="checkbox" class="stop-check" data-idx="${idx}" ${st.stop ? 'checked' : ''} title="Enable/disable halt at this station"></td>`;
+                const isFirst = idx === 0;
+                tbodyHtml += `<td><input type="checkbox" class="stop-check" data-idx="${idx}" ${st.stop ? 'checked' : ''} ${isFirst ? 'disabled' : ''} title="${isFirst ? 'First station always has departure time' : 'Enable/disable halt at this station'}"></td>`;
             } else if (col.key === 'station') {
                 tbodyHtml += `<td class="station-name">${st.station}</td>`;
             } else if (col.key === 'distPrev') {
@@ -31,9 +32,13 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
             } else if (col.key === 'distOrigin') {
                 tbodyHtml += `<td>${st.distOrigin.toFixed(3)}</td>`;
             } else if (col.key === 'arrival') {
-                tbodyHtml += `<td>${st.arrivalStr || ''}</td>`;
+                const isFirst = idx === 0;
+                const displayVal = (isFirst || st.stop) ? (st.arrivalStr || '') : '';
+                tbodyHtml += `<td>${displayVal}</td>`;
             } else if (col.key === 'departure') {
-                tbodyHtml += `<td>${st.departureStr || ''}</td>`;
+                const isFirst = idx === 0;
+                const displayVal = (isFirst || st.stop) ? (st.departureStr || '') : '';
+                tbodyHtml += `<td>${displayVal}</td>`;
             } else if (col.key === 'buffer') {
                 if (st.isFirst) {
                     tbodyHtml += `<td title="No buffer before the first station">-</td>`;
