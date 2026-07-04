@@ -11,3 +11,4 @@ A timetable schedule calculator for Open Rails Timetable Mode.
 
 # How to Open the Software?
 Simply run index.html in a recently updated browser. I have tested it on Chromium, but should work on Firefox as well.
+Get a JS file from the "Show path chart" option of ORTS TrackViewer and import it to the app, enjoy :D
