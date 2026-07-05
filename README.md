@@ -9,7 +9,7 @@ A timetable schedule calculator for Open Rails.
 3) Though the entire project is just HTML + CSS + JS and should not break anything, I'm not responsible for any consequences by your use of this software. Use it at your own risk.
 4) In my testing, the application has performed perfectly. If you run into any issues, feel free to open a new issue here in GitHub issues, but I can't guarantee the fix. :)
 5) If a learned friend wants to contribute / point out mistakes in the code, please don't hesitate.
-6) GPL v3! Perhaps you're a better prompt engineer?
+6) GPL v3! Perhaps you're a better prompt engineer? Try forking :)
 
 # How to Open the Software?
 Simply run index.html in a recently updated browser. I have tested it on Chromium, but should work on Firefox as well.
