@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.stations = result.stations;
         window.speedLimits = result.speedLimits;
 
-        // Build timetable data with defaultHaltEnabled
+        // Build timetable data with defaultHaltEnabled (no special lock for first station)
         window.timetableData = buildTimetableData(window.stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled);
 
         // Initial schedule update (with performance)
@@ -131,14 +131,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ---- ORTS Preview requested (excludes summary) ----
+    // ---- ORTS Preview requested ----
     document.addEventListener('ortsPreviewRequested', function() {
         if (window.timetableData.length === 0) {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
-        ortsText1.value = getOrtsData(true, false);
-        ortsText2.value = getOrtsData(false, false);
+        // Generate ORTS preview with skip logic (only stops)
+        ortsText1.value = getOrtsData(true);
+        ortsText2.value = getOrtsData(false);
     });
 
     // ---- Save Settings requested ----
@@ -208,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Station rows
         window.timetableData.forEach((row, idx) => {
-            const isFirst = idx === 0;
+            const isActive = row.stop;
             const rowData = visible.map(col => {
                 if (col.key === 'select') return '☑';
                 if (col.key === 'stop') return row.stop ? 'Yes' : 'No';
@@ -216,10 +217,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (col.key === 'distPrev') return row.distPrev.toFixed(3);
                 if (col.key === 'distOrigin') return row.distOrigin.toFixed(3);
                 if (col.key === 'arrival') {
-                    return (isFirst || row.stop) ? (row.arrivalStr || '') : '';
+                    return isActive ? (row.arrivalStr || '') : '';
                 }
                 if (col.key === 'departure') {
-                    return (isFirst || row.stop) ? (row.departureStr || '') : '';
+                    return isActive ? (row.departureStr || '') : '';
                 }
                 if (col.key === 'buffer') return row.isFirst ? '-' : (row.buffer || 0).toFixed(1);
                 if (col.key === 'halt') return (row.stop ? (row.halt || 0) : 0).toFixed(1);
@@ -298,17 +299,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return allRows.map(row => row.join('\t')).join('\n');
     }
 
-    function getOrtsData(includeStation, includeSummary = false) {
+    /**
+     * Generate ORTS preview data with skip logic:
+     * - Stations+Timings: show all stations, but timings empty for skipped (no stop)
+     * - Timings Only: only show lines for active stations (with timings)
+     */
+    function getOrtsData(includeStation) {
         const lines = [];
 
-        // Station rows (no summary in ORTS)
         window.timetableData.forEach((row, idx) => {
-            const isFirst = idx === 0;
-            if (!isFirst && !row.stop) {
-                lines.push('');
-                return;
-            }
-
+            const isActive = row.stop;
             const arr = row.arrivalStr || '';
             const dep = row.departureStr || '';
             let timeRange = '';
@@ -321,9 +321,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (includeStation) {
+                // Always output station name, even if skipped (timings empty)
                 lines.push(`${row.station}\t${timeRange}`);
             } else {
-                lines.push(timeRange);
+                // Timings Only – only output if active and has time range
+                if (isActive && timeRange) {
+                    lines.push(timeRange);
+                }
+                // else skip this line entirely
             }
         });
 

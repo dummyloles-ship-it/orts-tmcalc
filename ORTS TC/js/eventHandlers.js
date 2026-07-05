@@ -225,7 +225,6 @@ function setupEventHandlers() {
     // ---- Driver Performance input ----
     driverPerformanceInput.addEventListener('input', function() {
         updatePerfDisplay();
-        // Only trigger recalc if value is valid
         const val = parseFloat(this.value);
         if (!isNaN(val) && val >= 0.01 && val <= 1) {
             triggerRecalculateIfAuto();
@@ -242,12 +241,14 @@ function setupEventHandlers() {
     // ---- Default halt/buffer inputs (top bar) ----
     defaultHaltInput.addEventListener('input', () => {
         const val = parseFloat(defaultHaltInput.value) || 0;
+        // Find first stop index to only apply to stations from there onward? Actually, apply to all, but render will disable for skipped.
         window.timetableData.forEach(row => { row.halt = val; });
         defaultHaltSetting.value = val;
         triggerRecalculateIfAuto();
     });
     defaultBufferInput.addEventListener('input', () => {
         const val = parseFloat(defaultBufferInput.value) || 0;
+        // Apply buffer to all stations (render will disable for skipped)
         window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
         defaultBufferSetting.value = val;
         triggerRecalculateIfAuto();
@@ -283,17 +284,25 @@ function setupEventHandlers() {
             return;
         }
         const val = parseFloat(multiBuffer.value) || 0;
+        // Find first stop index to only apply buffer to stations from there onward
+        let firstStopIndex = -1;
+        for (let i = 0; i < window.timetableData.length; i++) {
+            if (window.timetableData[i].stop === true) {
+                firstStopIndex = i;
+                break;
+            }
+        }
+        let appliedCount = 0;
         indices.forEach(idx => {
             const row = window.timetableData[idx];
-            if (row && !row.isFirst) {
+            if (row && !row.isFirst && (firstStopIndex === -1 || idx >= firstStopIndex)) {
                 row.buffer = val;
-            } else if (row && row.isFirst) {
-                statusMsg.textContent = `⚠️ Station "${row.station}" is the origin - no buffer before it.`;
+                appliedCount++;
             }
         });
         const recalcEvent = new CustomEvent('recalculate');
         document.dispatchEvent(recalcEvent);
-        statusMsg.textContent = `✅ Buffer set to ${val} min for ${indices.length} segment(s).`;
+        statusMsg.textContent = `✅ Buffer set to ${val} min for ${appliedCount} segment(s). (skipped rows before first stop)`;
     });
 
     // ---- Settings modal ----
@@ -351,10 +360,7 @@ function setupEventHandlers() {
             if (row) {
                 row.stop = e.target.checked;
                 if (!row.stop) row.halt = 0;
-                if (!row.stop && !row.isFirst) {
-                    row.arrivalStr = '';
-                    row.departureStr = '';
-                }
+                // If this was the first stop and now unchecked, first stop will change; updateSchedule will handle it.
                 triggerRecalculateIfAuto();
             }
         }
@@ -365,7 +371,8 @@ function setupEventHandlers() {
         if (e.target.classList.contains('halt-input')) {
             const idx = parseInt(e.target.dataset.idx);
             const row = window.timetableData[idx];
-            if (!row.stop) {
+            // If halt is disabled, don't update (but the input is disabled anyway)
+            if (!row.stop && !row.isFirst) {
                 e.target.value = 0;
                 return;
             }
@@ -375,6 +382,8 @@ function setupEventHandlers() {
         }
         if (e.target.classList.contains('buffer-input')) {
             const idx = parseInt(e.target.dataset.idx);
+            // Check if this buffer is editable (only if after first stop)
+            // But we don't need to check here, because the input is disabled for non-editable ones
             const val = parseFloat(e.target.value) || 0;
             window.timetableData[idx].buffer = val;
             triggerRecalculateIfAuto();

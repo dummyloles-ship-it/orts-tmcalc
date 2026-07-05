@@ -1,16 +1,11 @@
 /**
  * TIMETABLE ENGINE
- * Travel time calculations, schedule generation
+ * Travel time calculations, schedule generation with top-skip logic
  */
 
 function computeTravelTimeWithDetails(dA, dB, defaultSpeed, speedLimits, performance) {
-    // performance: 0.01 to 1.0
-    // 1.0 = perfect driver (theoretical time)
-    // 0.0 = train not moving (infinite time) - handled by caller
-    
     if (dA >= dB) return { totalMinutes: 0, segments: [] };
     
-    // Clamp performance to valid range
     let perf = parseFloat(performance) || 1.0;
     if (perf < 0.01) perf = 0.01;
     if (perf > 1.0) perf = 1.0;
@@ -58,7 +53,6 @@ function computeTravelTimeWithDetails(dA, dB, defaultSpeed, speedLimits, perform
     
     let totalMinutes = totalHours * 60;
     
-    // Apply driver performance factor
     if (perf !== 1.0) {
         const adjustedTotal = totalMinutes / perf;
         const adjustmentFactor = 1 / perf;
@@ -82,9 +76,7 @@ function computeTravelTimeWithDetails(dA, dB, defaultSpeed, speedLimits, perform
 function minutesToTime(min) {
     if (min === undefined || isNaN(min) || !isFinite(min)) return '';
     
-    // Check if schedule extends beyond one day
     const extendsBeyondDay = window.scheduleExtendsBeyondDay || false;
-    
     const day = Math.floor(min / 1440);
     const rem = min % 1440;
     const hrs = Math.floor(rem / 60);
@@ -113,11 +105,44 @@ function updateSchedule(timetableData, departureInput, arrivalInput, defaultSpee
         return;
     }
 
-    // Clamp performance
     let perf = parseFloat(performance) || 1.0;
     if (perf < 0.01) perf = 0.01;
     if (perf > 1.0) perf = 1.0;
 
+    // ---- Find first station with halt enabled ----
+    let firstStopIndex = -1;
+    for (let i = 0; i < timetableData.length; i++) {
+        if (timetableData[i].stop === true) {
+            firstStopIndex = i;
+            break;
+        }
+    }
+
+    // If no station has halt enabled, clear all times and return
+    if (firstStopIndex === -1) {
+        timetableData.forEach(row => {
+            row.arrival = undefined;
+            row.departure = undefined;
+            row.arrivalStr = '';
+            row.departureStr = '';
+            row.calcDetails = null;
+        });
+        window.scheduleExtendsBeyondDay = false;
+        return;
+    }
+
+    // ---- Compute total travel time from firstStopIndex to end ----
+    let totalMinutes = 0;
+    for (let i = firstStopIndex; i < timetableData.length - 1; i++) {
+        const fromRow = timetableData[i];
+        const toRow = timetableData[i + 1];
+        const travel = computeTravelTimeWithDetails(fromRow.distOrigin, toRow.distOrigin, parseFloat(defaultSpeedInput.value) || 0, speedLimits, perf);
+        totalMinutes += travel.totalMinutes;
+        // Buffer is always applied for all stations after firstStopIndex, regardless of stop status
+        totalMinutes += toRow.buffer || 0;
+    }
+
+    // Determine start time
     if (!depStr && !arrStr) {
         startMinutes = 0;
     } else if (depStr) {
@@ -126,37 +151,46 @@ function updateSchedule(timetableData, departureInput, arrivalInput, defaultSpee
     } else if (arrStr) {
         const parts = arrStr.split(':');
         const endMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-        let totalMinutes = 0;
-        for (let i = 0; i < timetableData.length - 1; i++) {
-            const row = timetableData[i];
-            const nextRow = timetableData[i + 1];
-            const travel = computeTravelTimeWithDetails(row.distOrigin, nextRow.distOrigin, parseFloat(defaultSpeedInput.value) || 0, speedLimits, perf);
-            totalMinutes += travel.totalMinutes;
-            totalMinutes += nextRow.buffer || 0;
-            if (row.stop) totalMinutes += row.halt || 0;
-        }
         startMinutes = endMinutes - totalMinutes;
     }
 
     if (startMinutes === null) {
         timetableData.forEach(row => { row.arrivalStr = ''; row.departureStr = ''; row.calcDetails = null; });
-        // Reset day flag
         window.scheduleExtendsBeyondDay = false;
         return;
     }
 
+    // ---- Compute schedule starting from firstStopIndex ----
     let currentTime = startMinutes;
     let maxTime = 0;
-    for (let i = 0; i < timetableData.length; i++) {
+
+    // For stations before firstStopIndex, clear times and force buffer/halt to 0
+    for (let i = 0; i < firstStopIndex; i++) {
         const row = timetableData[i];
-        if (i === 0) {
+        row.arrival = undefined;
+        row.departure = undefined;
+        row.arrivalStr = '';
+        row.departureStr = '';
+        row.calcDetails = null;
+        row.buffer = 0;
+        row.halt = 0;
+        // Ensure stop is false (they shouldn't have stop anyway, but just in case)
+        row.stop = false;
+    }
+
+    // For stations from firstStopIndex onward, compute schedule
+    for (let i = firstStopIndex; i < timetableData.length; i++) {
+        const row = timetableData[i];
+        if (i === firstStopIndex) {
             row.arrival = currentTime;
+            // Departure includes halt only if stop is true
             row.departure = currentTime + (row.stop ? (row.halt || 0) : 0);
             row.calcDetails = null;
         } else {
             const prevRow = timetableData[i - 1];
             const travelInfo = computeTravelTimeWithDetails(prevRow.distOrigin, row.distOrigin, parseFloat(defaultSpeedInput.value) || 0, speedLimits, perf);
             const travel = travelInfo.totalMinutes;
+            // Buffer is always applied after firstStopIndex, regardless of stop
             const buffer = row.buffer || 0;
             row.arrival = prevRow.departure + travel + buffer;
             row.departure = row.arrival + (row.stop ? (row.halt || 0) : 0);
@@ -177,19 +211,22 @@ function updateSchedule(timetableData, departureInput, arrivalInput, defaultSpee
                 toPoints: row.stationPoints
             };
         }
-        // Track max time for day rollover detection
         if (row.arrival > maxTime) maxTime = row.arrival;
         if (row.departure > maxTime) maxTime = row.departure;
     }
 
-    // Set day rollover flag if any time >= 24 hours (1440 minutes)
     window.scheduleExtendsBeyondDay = maxTime >= 1440;
 
-    // Convert times to strings with day info if needed
+    // Convert times to strings
     for (let i = 0; i < timetableData.length; i++) {
         const row = timetableData[i];
-        row.arrivalStr = minutesToTime(row.arrival);
-        row.departureStr = minutesToTime(row.departure);
+        if (i >= firstStopIndex) {
+            row.arrivalStr = minutesToTime(row.arrival);
+            row.departureStr = minutesToTime(row.departure);
+        } else {
+            row.arrivalStr = '';
+            row.departureStr = '';
+        }
     }
 }
 

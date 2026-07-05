@@ -38,6 +38,7 @@ function processData(rawPoints, defaultHaltVal, defaultBufferVal) {
 function buildTimetableData(stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled) {
     return stations.map((st, idx) => {
         const isFirst = idx === 0;
+        // First station is now treated the same as others – no special lock
         return {
             station: st.name,
             distOrigin: st.distance,
@@ -46,11 +47,11 @@ function buildTimetableData(stations, defaultHaltVal, defaultBufferVal, defaultH
             departure: 0,
             arrivalStr: '',
             departureStr: '',
-            stop: isFirst ? true : defaultHaltEnabled,
+            stop: defaultHaltEnabled, // all stations follow the setting
             halt: defaultHaltVal,
             buffer: defaultBufferVal,
             isLast: idx === stations.length - 1,
-            isFirst: isFirst,
+            isFirst: isFirst, // still track origin for distance calculations
             stationPoints: st.points,
             originPoints: idx === 0 ? null : stations[idx - 1].points,
             calcDetails: null
