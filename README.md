@@ -1,5 +1,5 @@
 # orts-tmcalc
-A timetable schedule calculator for Open Rails Timetable Mode.
+A timetable schedule calculator for Open Rails.
 
 <img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/d206d797-6c26-4caf-899f-865c179ed879" />
 
