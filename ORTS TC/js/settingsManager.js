@@ -25,6 +25,18 @@ function loadSettings() {
             if (settings.defaultHaltEnabled !== undefined) {
                 document.getElementById('defaultHaltEnabledSetting').checked = settings.defaultHaltEnabled;
             }
+            if (settings.autoCalculate !== undefined) {
+                document.getElementById('autoCalculateSetting').checked = settings.autoCalculate;
+            }
+            if (settings.defaultPerformance !== undefined) {
+                document.getElementById('defaultPerformanceSetting').value = settings.defaultPerformance;
+                document.getElementById('driverPerformance').value = settings.defaultPerformance;
+                // Update display
+                const perfDisplay = document.getElementById('perfDisplay');
+                if (perfDisplay) {
+                    perfDisplay.textContent = `${Math.round(settings.defaultPerformance * 100)}%`;
+                }
+            }
             return settings;
         }
     } catch (e) { /* ignore */ }
@@ -37,7 +49,9 @@ function saveSettings() {
         defaultHalt: parseFloat(document.getElementById('defaultHaltSetting').value) || 0,
         defaultBuffer: parseFloat(document.getElementById('defaultBufferSetting').value) || 0,
         defaultFolder: document.getElementById('defaultFolderSetting').value || '',
-        defaultHaltEnabled: document.getElementById('defaultHaltEnabledSetting').checked
+        defaultHaltEnabled: document.getElementById('defaultHaltEnabledSetting').checked,
+        autoCalculate: document.getElementById('autoCalculateSetting').checked,
+        defaultPerformance: parseFloat(document.getElementById('defaultPerformanceSetting').value) || 1.0
     };
     localStorage.setItem('timetableSettings', JSON.stringify(settings));
     // Apply theme
@@ -45,6 +59,11 @@ function saveSettings() {
     // Update top-bar inputs
     document.getElementById('defaultHalt').value = settings.defaultHalt;
     document.getElementById('defaultBuffer').value = settings.defaultBuffer;
+    document.getElementById('driverPerformance').value = settings.defaultPerformance;
+    const perfDisplay = document.getElementById('perfDisplay');
+    if (perfDisplay) {
+        perfDisplay.textContent = `${Math.round(settings.defaultPerformance * 100)}%`;
+    }
     // If data loaded, apply new defaults
     if (window.timetableData && window.timetableData.length > 0) {
         window.timetableData.forEach((row, idx) => {
@@ -63,6 +82,12 @@ function saveSettings() {
     return settings;
 }
 
+function isAutoCalculateEnabled() {
+    const checkbox = document.getElementById('autoCalculateSetting');
+    return checkbox ? checkbox.checked : true;
+}
+
 // Expose globally
 window.loadSettings = loadSettings;
 window.saveSettings = saveSettings;
+window.isAutoCalculateEnabled = isAutoCalculateEnabled;

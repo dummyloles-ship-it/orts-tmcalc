@@ -21,7 +21,7 @@
                 </label>
                 <button class="btn btn-primary" id="recalcBtn" title="Force a recalculation of the timetable">🔄 Recalculate</button>
                 <button class="btn btn-success" id="previewBtn" title="Preview the full timetable with headers in TSV format">👁️ Preview</button>
-                <button class="btn btn-orts" id="ortsPreviewBtn" title="Preview for ORTS Timetable Editor – two formats available">🚆 ORTS Preview</button>
+                <button class="btn btn-orts" id="ortsPreviewBtn" title="Preview for ORTS Timetable Editor – two formats available">🚆 OR TE Format</button>
             </div>
         </div>
 
@@ -49,6 +49,11 @@
             <div class="input-group">
                 <label title="Default extra time added between each segment (minutes)">Default buffer (min):</label>
                 <input type="number" id="defaultBuffer" value="0" step="0.5" min="0" style="width:55px;" title="Default extra time between segments (minutes)">
+            </div>
+            <div class="input-group">
+                <label title="Driver performance factor (0.0–1.0). 1.0 = perfect driver, 0.0 = stopped">Driver Performance:</label>
+                <input type="number" id="driverPerformance" value="1.0" step="any" min="0.01" max="1" style="width:60px;" title="Driver performance factor (0.0–1.0). 1.0 = perfect driver">
+                <span style="font-size:12px; opacity:0.8; min-width:45px;" id="perfDisplay">100%</span>
             </div>
         </div>
 
@@ -95,15 +100,16 @@
                     <li><strong>Speed Limits:</strong> Numeric boards (type 3/4) are used automatically. Set <strong>"Default speed"</strong> to override all limits (leave empty to use data).</li>
                     <li><strong>Timing:</strong> Enter either <strong>"Arrival at Source"</strong> or <strong>"Arrival at Destination"</strong> – the other is computed. Both empty = starts at 00:00.</li>
                     <li><strong>Halts:</strong> Toggle the <strong>"Halt"</strong> checkbox to enable/disable dwell time at each station. Unchecked = halt forced to 0 and station is skipped (no arrival/departure shown).</li>
-                    <li><strong>Buffer:</strong> The <strong>⬅</strong> icon indicates buffer <em>before</em> arriving at that station (between previous → current).</li>
+                    <li><strong>Buffer:</strong> The <strong>⬑</strong> icon indicates buffer <em>before</em> arriving at that station (between previous → current). Buffer is added on top of running time.</li>
+                    <li><strong>Driver Performance:</strong> A factor from 0.0 to 1.0. 1.0 = perfect driver (theoretical running time). 0.5 = half speed = double running time. 0.0 = train stopped. Buffer and halt are added on top.</li>
                     <li><strong>Multi‑edit:</strong> Select rows with the <strong>"Multi-edit"</strong> checkbox, then choose <strong>"Apply to all"</strong> for Halt or Buffer.</li>
                     <li><strong>Column Selection:</strong> Toggle any column visibility – Preview & Copy will only show visible columns.</li>
-                    <li><strong>Preview:</strong> <strong>"👁️ Preview"</strong> shows the full table (with headers) in TSV format. <strong>"🚆 ORTS Preview"</strong> offers two formats: with or without station names.</li>
-                    <li><strong>Settings (⚙️):</strong> Change theme, default halt, default buffer, enable/disable halts by default, or save a folder reference. Theme changes preview instantly – click <strong>"Save Settings"</strong> to keep them.</li>
+                    <li><strong>Preview:</strong> <strong>"👁️ Preview"</strong> shows the full table (with headers) in TSV format. <strong>"🚆 OR TE Format"</strong> offers two formats: with or without station names – you can edit the text before copying.</li>
+                    <li><strong>Settings (⚙️):</strong> Change theme, default halt, default buffer, enable/disable halts by default, toggle automatic calculation, or save a folder reference. Theme changes preview instantly – click <strong>"Save Settings"</strong> to keep them.</li>
                     <li><strong>Themes:</strong> Dark (default), Light, Solarized, Monokai, Ocean – choose your preference.</li>
                 </ul>
                 <p style="margin-top:6px;"><em>💡 Hover over any element for a tooltip.</em></p>
-                <p style="margin-top:8px;"><strong>📖 Manual:</strong> <a href="manual.pdf" target="_blank">Download PDF Manual</a></p>
+                <p style="margin-top:8px;"><strong>📖 Manual:</strong> <a href="manual.pdf" target="_blank">View PDF Manual</a></p>
             </div>
         </div>
     </div>
@@ -121,23 +127,23 @@
         </div>
     </div>
 
-    <!-- ORTS PREVIEW MODAL -->
+    <!-- ORTS PREVIEW MODAL (editable) -->
     <div class="modal-overlay" id="ortsModal">
         <div class="modal">
             <button class="modal-close" id="ortsModalClose" title="Close">✕ Close</button>
-            <h3 style="margin-bottom:8px;">🚆 ORTS Timetable Editor Preview</h3>
+            <h3 style="margin-bottom:8px;">🚆 OR TE Format Preview</h3>
             <div class="tab-bar">
-                <button class="tab-btn active" data-tab="tab1" title="Station names with Arrival and Departure times">Station + Times</button>
-                <button class="tab-btn" data-tab="tab2" title="Arrival and Departure times only (no station names)">Times Only</button>
+                <button class="tab-btn active" data-tab="tab1" title="Station names with Arrival and Departure times">Stations + Timings</button>
+                <button class="tab-btn" data-tab="tab2" title="Arrival and Departure times only (no station names)">Timings Only</button>
             </div>
             <div class="tab-content active" id="tab1">
-                <textarea id="ortsText1" readonly></textarea>
+                <textarea id="ortsText1"></textarea>
                 <div class="btn-group">
                     <button class="btn btn-success" id="copyOrts1" title="Copy to clipboard">📋 Copy</button>
                 </div>
             </div>
             <div class="tab-content" id="tab2">
-                <textarea id="ortsText2" readonly></textarea>
+                <textarea id="ortsText2"></textarea>
                 <div class="btn-group">
                     <button class="btn btn-success" id="copyOrts2" title="Copy to clipboard">📋 Copy</button>
                 </div>
@@ -159,6 +165,7 @@
         <div class="modal">
             <button class="modal-close" id="settingsModalClose" title="Close">✕ Close</button>
             <h3 style="margin-bottom:8px;">⚙️ Settings</h3>
+            
             <div class="settings-group">
                 <label for="themeSelect">Theme</label>
                 <select id="themeSelect">
@@ -168,27 +175,47 @@
                     <option value="theme-monokai">Monokai</option>
                     <option value="theme-ocean">Ocean</option>
                 </select>
-                <div class="hint">Preview changes instantly. Click "Save Settings" to keep your choice.</div>
+                <div class="hint">Change the app's color scheme. Preview changes instantly.</div>
             </div>
+            
             <div class="settings-group">
                 <label for="defaultHaltSetting">Default Halt (min)</label>
                 <input type="number" id="defaultHaltSetting" step="0.5" min="0" value="2">
+                <div class="hint">Default dwell time applied to all stations on load.</div>
             </div>
+            
             <div class="settings-group">
                 <label for="defaultBufferSetting">Default Buffer (min)</label>
                 <input type="number" id="defaultBufferSetting" step="0.5" min="0" value="0">
+                <div class="hint">Default extra time added between segments on load.</div>
             </div>
+            
             <div class="settings-group">
-                <label for="defaultFolderSetting">Default Folder (for your reference)</label>
-                <input type="text" id="defaultFolderSetting" placeholder="e.g. C:\MyRoutes\Data">
-                <div class="hint">Stored for your reference only – browsers cannot set a default folder for the file picker.</div>
+                <label for="defaultPerformanceSetting">Default Driver Performance</label>
+                <input type="number" id="defaultPerformanceSetting" step="0.01" min="0.01" max="1" value="1.0">
+                <div class="hint">Default driver speed compliance factor (1.0 = perfect).</div>
             </div>
+            
             <div class="settings-group">
                 <label for="defaultHaltEnabledSetting">
                     <input type="checkbox" id="defaultHaltEnabledSetting"> Enable halts by default
                 </label>
-                <div class="hint">When checked, halts are enabled for all stations on load. When unchecked, halts are disabled by default.</div>
+                <div class="hint">When checked, halts are enabled for all stations on load.</div>
             </div>
+            
+            <div class="settings-group">
+                <label for="autoCalculateSetting">
+                    <input type="checkbox" id="autoCalculateSetting" checked> Automatic calculation
+                </label>
+                <div class="hint">Auto-update timetable on any change. Disable to manually recalculate.</div>
+            </div>
+            
+            <div class="settings-group">
+                <label for="defaultFolderSetting">Default Folder (for your reference)</label>
+                <input type="text" id="defaultFolderSetting" placeholder="e.g. C:\MyRoutes\Data">
+                <div class="hint">Store a folder path for your reference (browsers cannot set this).</div>
+            </div>
+            
             <div class="btn-group">
                 <button class="btn btn-success" id="saveSettingsBtn">💾 Save Settings</button>
                 <button class="btn btn-outline" id="closeSettingsBtn">Close</button>

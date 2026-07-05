@@ -331,12 +331,16 @@ table {
     border-collapse: collapse;
     font-size: 13px;
     background: var(--bg-container);
+    table-layout: fixed;
 }
 th, td {
     padding: 6px 8px;
     border-top: 1px solid var(--td-border);
     border-right: 1px solid var(--td-border);
     vertical-align: middle;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 th:last-child, td:last-child {
     border-right: none;
@@ -346,17 +350,57 @@ th {
     color: var(--th-text);
     font-weight: 600;
     text-align: left;
-    white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 2;
     font-size: 12px;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 tr:hover td {
     background: var(--hover-bg);
 }
+/* ---- Column Widths ---- */
+.col-station {
+    width: auto;
+    min-width: 100px;
+    max-width: 250px;
+}
+.col-arrival, .col-departure {
+    width: 60px;
+    min-width: 55px;
+}
+.col-halt, .col-stop {
+    width: 40px;
+    min-width: 35px;
+}
+/* Buffer column - wider to fit arrow and input */
+.col-buffer {
+    width: 85px;
+    min-width: 80px;
+}
+.col-select {
+    width: 40px;
+    min-width: 35px;
+}
+.col-distPrev {
+    width: 80px;
+    min-width: 70px;
+}
+.col-distOrigin {
+    width: 80px;
+    min-width: 70px;
+}
+.col-calc {
+    width: 40px;
+    min-width: 35px;
+}
+
+/* ---- Editable inputs inside cells ---- */
 .editable-input {
-    width: 56px;
+    width: 100%;
+    max-width: 56px;
     padding: 2px 4px;
     border-radius: 4px;
     border: 1px solid var(--input-border);
@@ -365,6 +409,7 @@ tr:hover td {
     font-size: 12px;
     text-align: center;
     height: 26px;
+    box-sizing: border-box;
 }
 .editable-input:disabled {
     opacity: 0.5;
@@ -378,13 +423,26 @@ tr:hover td {
 .station-name {
     font-weight: 500;
     font-size: 13px;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
+
+/* ---- Buffer arrow - fits neatly ---- */
 .buffer-prefix {
-    font-size: 11px;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--buffer-prefix);
     margin-right: 2px;
-    font-weight: 400;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
 }
+.buffer-placeholder, .calc-placeholder {
+    color: var(--buffer-prefix);
+    opacity: 0.6;
+}
+/* ---- Status & Notes ---- */
 .status {
     margin: 6px 0 8px;
     padding: 6px 12px;
@@ -398,7 +456,8 @@ tr:hover td {
     color: var(--buffer-prefix);
     font-style: italic;
 }
-/* MODAL */
+
+/* ---- MODAL ---- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -561,7 +620,6 @@ tr:hover td {
     opacity: 0.7;
     margin-top: 2px;
 }
-/* Checkbox in settings */
 .settings-group input[type="checkbox"] {
     width: auto;
     margin-right: 8px;

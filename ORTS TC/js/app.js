@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const defaultSpeedInput = document.getElementById('defaultSpeed');
     const defaultHaltInput = document.getElementById('defaultHalt');
     const defaultBufferInput = document.getElementById('defaultBuffer');
+    const driverPerformanceInput = document.getElementById('driverPerformance');
     const previewText = document.getElementById('previewText');
     const ortsText1 = document.getElementById('ortsText1');
     const ortsText2 = document.getElementById('ortsText2');
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const defaultHaltVal = parseFloat(defaultHaltInput.value) || 0;
         const defaultBufferVal = parseFloat(defaultBufferInput.value) || 0;
         const defaultHaltEnabled = document.getElementById('defaultHaltEnabledSetting')?.checked || false;
+        const performance = parseFloat(driverPerformanceInput.value) || 1.0;
 
         // Process data
         const result = processData(points, defaultHaltVal, defaultBufferVal);
@@ -38,15 +40,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Build timetable data with defaultHaltEnabled
         window.timetableData = buildTimetableData(window.stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled);
 
-        // Initial schedule update
+        // Initial schedule update (with performance)
         updateSchedule(
             window.timetableData,
             departureInput,
             arrivalInput,
             defaultSpeedInput,
             window.speedLimits,
-            statusMsg
+            statusMsg,
+            performance
         );
+
+        // Apply responsive visibility before rendering
+        applyResponsiveVisibility();
 
         // Render
         renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
@@ -54,7 +60,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Render column selector
         renderColumnSelector(COLUMNS, window.columnVisibility, colSelector);
 
-        statusMsg.textContent = `✅ Loaded ${points.length} points. Found ${window.stations.length} stations.`;
+        // Check auto-calculate status
+        const autoCalc = document.getElementById('autoCalculateSetting')?.checked !== false;
+        if (!autoCalc) {
+            statusMsg.textContent = `✅ Loaded ${points.length} points. Found ${window.stations.length} stations. ℹ️ Auto-calculation is disabled. Click "Recalculate" to update the timetable.`;
+        } else {
+            statusMsg.textContent = `✅ Loaded ${points.length} points. Found ${window.stations.length} stations.`;
+        }
     });
 
     // ---- Recalculate event ----
@@ -63,15 +75,24 @@ document.addEventListener('DOMContentLoaded', function() {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
+        const performance = parseFloat(driverPerformanceInput.value) || 1.0;
         updateSchedule(
             window.timetableData,
             departureInput,
             arrivalInput,
             defaultSpeedInput,
             window.speedLimits,
-            statusMsg
+            statusMsg,
+            performance
         );
+        applyResponsiveVisibility();
         renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+        const autoCalc = document.getElementById('autoCalculateSetting')?.checked !== false;
+        if (!autoCalc) {
+            statusMsg.textContent = '✅ Timetable recalculated. ℹ️ Auto-calculation is disabled. Click "Recalculate" to update the timetable.';
+        } else {
+            statusMsg.textContent = '✅ Timetable recalculated.';
+        }
     });
 
     // ---- Render table event ----
@@ -79,24 +100,24 @@ document.addEventListener('DOMContentLoaded', function() {
         renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
     });
 
-    // ---- Preview requested ----
+    // ---- Preview requested (includes summary) ----
     document.addEventListener('previewRequested', function() {
         if (window.timetableData.length === 0) {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
-        const tsv = getTSVWithHeaders(window.timetableData, window.columnVisibility, COLUMNS);
+        const tsv = getTSVWithHeaders(window.timetableData, window.columnVisibility, COLUMNS, true);
         previewText.value = tsv;
         document.getElementById('previewModal').classList.add('active');
     });
 
-    // ---- Copy TSV requested ----
+    // ---- Copy TSV requested (includes summary) ----
     document.addEventListener('copyTSVRequested', function() {
         if (window.timetableData.length === 0) {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
-        const tsv = getTSVWithHeaders(window.timetableData, window.columnVisibility, COLUMNS);
+        const tsv = getTSVWithHeaders(window.timetableData, window.columnVisibility, COLUMNS, true);
         navigator.clipboard.writeText(tsv).then(() => {
             statusMsg.textContent = '✅ Copied to clipboard!';
         }).catch(() => {
@@ -110,14 +131,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ---- ORTS Preview requested ----
+    // ---- ORTS Preview requested (excludes summary) ----
     document.addEventListener('ortsPreviewRequested', function() {
         if (window.timetableData.length === 0) {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
-        ortsText1.value = getOrtsData(true);
-        ortsText2.value = getOrtsData(false);
+        ortsText1.value = getOrtsData(true, false);
+        ortsText2.value = getOrtsData(false, false);
     });
 
     // ---- Save Settings requested ----
@@ -125,7 +146,54 @@ document.addEventListener('DOMContentLoaded', function() {
         saveSettings();
     });
 
+    // ---- Responsive visibility function ----
+    function applyResponsiveVisibility() {
+        const width = window.innerWidth;
+        const { columnVisibility, userToggled } = window;
+
+        const thresholds = {
+            'calc': 1050,
+            'distOrigin': 950,
+            'distPrev': 850,
+            'select': 750,
+            'buffer': 650,
+            'halt': 650,
+            'stop': 550
+        };
+
+        Object.keys(thresholds).forEach(key => {
+            if (!userToggled[key]) {
+                columnVisibility[key] = width >= thresholds[key];
+            }
+        });
+
+        columnVisibility.station = true;
+        columnVisibility.arrival = true;
+        columnVisibility.departure = true;
+
+        const checkboxes = colSelector.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            const key = cb.dataset.key;
+            if (key && columnVisibility[key] !== undefined) {
+                cb.checked = columnVisibility[key];
+            }
+        });
+    }
+
+    // ---- Window resize listener ----
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (window.timetableData && window.timetableData.length > 0) {
+                applyResponsiveVisibility();
+                renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+            }
+        }, 150);
+    });
+
     // ---- Helper functions for preview ----
+
     function getVisibleColumnsForCopy() {
         return COLUMNS.filter(col => window.columnVisibility[col.key] !== false);
     }
@@ -134,11 +202,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return getVisibleColumnsForCopy().map(col => col.label);
     }
 
-    function getTableData() {
+    function getTableData(includeSummary) {
         const visible = getVisibleColumnsForCopy();
-        return window.timetableData.map((row, idx) => {
+        const rows = [];
+
+        // Station rows
+        window.timetableData.forEach((row, idx) => {
             const isFirst = idx === 0;
-            return visible.map(col => {
+            const rowData = visible.map(col => {
                 if (col.key === 'select') return '☑';
                 if (col.key === 'stop') return row.stop ? 'Yes' : 'No';
                 if (col.key === 'station') return row.station;
@@ -155,22 +226,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (col.key === 'calc') return '📊';
                 return '';
             });
+            rows.push(rowData);
         });
+
+        // Summary row (only if requested)
+        if (includeSummary) {
+            const summary = calculateSummary(window.timetableData);
+            const rowData = [];
+            visible.forEach(col => {
+                let value = '';
+                switch (col.key) {
+                    case 'select':
+                        value = '-';
+                        break;
+                    case 'stop':
+                        value = '-';
+                        break;
+                    case 'station':
+                        value = `TOTAL (${summary.totalStations} stations)`;
+                        break;
+                    case 'distPrev':
+                        value = summary.totalDistPrev.toFixed(3);
+                        break;
+                    case 'distOrigin':
+                        value = '-';
+                        break;
+                    case 'arrival':
+                        value = `${(summary.totalTravelTime + summary.totalHalt + summary.totalBuffer).toFixed(1)} min`;
+                        break;
+                    case 'departure':
+                        value = '';
+                        break;
+                    case 'buffer':
+                        value = summary.totalBuffer.toFixed(1);
+                        break;
+                    case 'halt':
+                        value = summary.totalHalt.toFixed(1);
+                        break;
+                    case 'calc':
+                        value = '-';
+                        break;
+                    default:
+                        value = '-';
+                }
+                rowData.push(value);
+            });
+            // Remove empty departure column data
+            const filteredRowData = [];
+            let skipNext = false;
+            visible.forEach((col, idx) => {
+                if (skipNext) { skipNext = false; return; }
+                if (col.key === 'arrival' && visible.some(c => c.key === 'departure')) {
+                    filteredRowData.push(rowData[idx]);
+                    skipNext = true;
+                } else if (col.key === 'departure') {
+                    // Skip
+                } else {
+                    filteredRowData.push(rowData[idx]);
+                }
+            });
+            rows.push(filteredRowData);
+        }
+
+        return rows;
     }
 
-    function getTSVWithHeaders() {
+    function getTSVWithHeaders(includeSummary) {
         const headers = getHeaders();
-        const rows = getTableData();
+        const rows = getTableData(includeSummary);
         const allRows = [headers, ...rows];
         return allRows.map(row => row.join('\t')).join('\n');
     }
 
-    function getOrtsData(includeStation) {
-        const lines = window.timetableData.map((row, idx) => {
-            const isFirst = idx === 0;
+    function getOrtsData(includeStation, includeSummary = false) {
+        const lines = [];
 
+        // Station rows (no summary in ORTS)
+        window.timetableData.forEach((row, idx) => {
+            const isFirst = idx === 0;
             if (!isFirst && !row.stop) {
-                return '';
+                lines.push('');
+                return;
             }
 
             const arr = row.arrivalStr || '';
@@ -185,17 +321,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (includeStation) {
-                return `${row.station}\t${timeRange}`;
+                lines.push(`${row.station}\t${timeRange}`);
             } else {
-                return timeRange;
+                lines.push(timeRange);
             }
         });
+
         return lines.join('\n');
+    }
+
+    function calculateSummary(timetableData) {
+        let totalDistPrev = 0;
+        let totalDistOrigin = 0;
+        let totalBuffer = 0;
+        let totalHalt = 0;
+        let totalTravelTime = 0;
+
+        timetableData.forEach((row, idx) => {
+            totalDistPrev += row.distPrev || 0;
+            if (idx === timetableData.length - 1) {
+                totalDistOrigin = row.distOrigin || 0;
+            }
+            if (!row.isFirst) {
+                totalBuffer += row.buffer || 0;
+            }
+            if (row.stop) {
+                totalHalt += row.halt || 0;
+            }
+            if (row.calcDetails) {
+                totalTravelTime += row.calcDetails.travelMinutes || 0;
+            }
+        });
+
+        return {
+            totalDistPrev,
+            totalDistOrigin,
+            totalBuffer,
+            totalHalt,
+            totalTravelTime,
+            totalStations: timetableData.length
+        };
     }
 
     // Expose helpers for other modules
     window.getTSVWithHeaders = getTSVWithHeaders;
     window.getOrtsData = getOrtsData;
+    window.calculateSummary = calculateSummary;
 
     // ---- Setup event handlers ----
     setupEventHandlers();

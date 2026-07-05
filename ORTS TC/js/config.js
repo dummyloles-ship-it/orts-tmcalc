@@ -23,7 +23,9 @@ const DEFAULT_SETTINGS = {
     defaultHalt: 2,
     defaultBuffer: 0,
     defaultFolder: '',
-    defaultHaltEnabled: false
+    defaultHaltEnabled: false,
+    autoCalculate: true,
+    defaultPerformance: 1.0
 };
 
 // ---- Global state ----
@@ -32,6 +34,10 @@ let stations = [];
 let speedLimits = [];
 let timetableData = [];
 let columnVisibility = {};
+let userToggled = {};
+
+// ---- Day rollover flag ----
+window.scheduleExtendsBeyondDay = false;
 
 // Initialize column visibility
 COLUMNS.forEach(col => { columnVisibility[col.key] = true; });
@@ -44,3 +50,4 @@ window.stations = stations;
 window.speedLimits = speedLimits;
 window.timetableData = timetableData;
 window.columnVisibility = columnVisibility;
+window.userToggled = userToggled;

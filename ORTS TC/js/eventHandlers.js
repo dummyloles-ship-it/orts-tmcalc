@@ -15,6 +15,8 @@ function setupEventHandlers() {
     const defaultSpeedInput = document.getElementById('defaultSpeed');
     const defaultHaltInput = document.getElementById('defaultHalt');
     const defaultBufferInput = document.getElementById('defaultBuffer');
+    const driverPerformanceInput = document.getElementById('driverPerformance');
+    const perfDisplay = document.getElementById('perfDisplay');
     const recalcBtn = document.getElementById('recalcBtn');
     const previewBtn = document.getElementById('previewBtn');
     const ortsPreviewBtn = document.getElementById('ortsPreviewBtn');
@@ -51,7 +53,28 @@ function setupEventHandlers() {
     const defaultFolderSetting = document.getElementById('defaultFolderSetting');
 
     // Get references from global scope
-    const { COLUMNS, columnVisibility, timetableData, speedLimits } = window;
+    const { COLUMNS, columnVisibility, userToggled } = window;
+
+    // ---- Helper: trigger recalculate if auto-calc is enabled ----
+    function triggerRecalculateIfAuto() {
+        const autoCalc = document.getElementById('autoCalculateSetting')?.checked !== false;
+        if (autoCalc) {
+            const recalcEvent = new CustomEvent('recalculate');
+            document.dispatchEvent(recalcEvent);
+        } else {
+            statusMsg.textContent = 'ℹ️ Auto-calculation is disabled. Click "Recalculate" to update the timetable.';
+        }
+    }
+
+    // ---- Update performance display ----
+    function updatePerfDisplay() {
+        const val = parseFloat(driverPerformanceInput.value) || 1.0;
+        const clamped = Math.max(0.01, Math.min(1, val));
+        perfDisplay.textContent = `${Math.round(clamped * 100)}%`;
+        if (val < 0.01 || val > 1) {
+            driverPerformanceInput.value = clamped;
+        }
+    }
 
     // ---- File load ----
     fileInput.addEventListener('change', (e) => {
@@ -83,7 +106,7 @@ function setupEventHandlers() {
         fileInput.value = '';
     });
 
-    // ---- Recalculate ----
+    // ---- Recalculate (always works) ----
     recalcBtn.addEventListener('click', () => {
         if (window.stations.length === 0) {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
@@ -189,17 +212,31 @@ function setupEventHandlers() {
     // ---- Auto-update on source/destination time changes ----
     departureInput.addEventListener('change', () => {
         if (departureInput.value) arrivalInput.value = '';
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
     arrivalInput.addEventListener('change', () => {
         if (arrivalInput.value) departureInput.value = '';
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
     defaultSpeedInput.addEventListener('change', () => {
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
+    });
+
+    // ---- Driver Performance input ----
+    driverPerformanceInput.addEventListener('input', function() {
+        updatePerfDisplay();
+        // Only trigger recalc if value is valid
+        const val = parseFloat(this.value);
+        if (!isNaN(val) && val >= 0.01 && val <= 1) {
+            triggerRecalculateIfAuto();
+        }
+    });
+    driverPerformanceInput.addEventListener('change', function() {
+        updatePerfDisplay();
+        const val = parseFloat(this.value);
+        if (!isNaN(val) && val >= 0.01 && val <= 1) {
+            triggerRecalculateIfAuto();
+        }
     });
 
     // ---- Default halt/buffer inputs (top bar) ----
@@ -207,15 +244,13 @@ function setupEventHandlers() {
         const val = parseFloat(defaultHaltInput.value) || 0;
         window.timetableData.forEach(row => { row.halt = val; });
         defaultHaltSetting.value = val;
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
     defaultBufferInput.addEventListener('input', () => {
         const val = parseFloat(defaultBufferInput.value) || 0;
         window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
         defaultBufferSetting.value = val;
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
 
     // ---- Multi-edit ----
@@ -287,7 +322,9 @@ function setupEventHandlers() {
     // ---- Column selector change events (delegated) ----
     colSelector.addEventListener('change', (e) => {
         if (e.target.type === 'checkbox' && e.target.dataset.key) {
-            columnVisibility[e.target.dataset.key] = e.target.checked;
+            const key = e.target.dataset.key;
+            userToggled[key] = true;
+            columnVisibility[key] = e.target.checked;
             const renderEvent = new CustomEvent('renderTable');
             document.dispatchEvent(renderEvent);
         }
@@ -318,8 +355,7 @@ function setupEventHandlers() {
                     row.arrivalStr = '';
                     row.departureStr = '';
                 }
-                const recalcEvent = new CustomEvent('recalculate');
-                document.dispatchEvent(recalcEvent);
+                triggerRecalculateIfAuto();
             }
         }
     });
@@ -335,15 +371,13 @@ function setupEventHandlers() {
             }
             const val = parseFloat(e.target.value) || 0;
             row.halt = val;
-            const recalcEvent = new CustomEvent('recalculate');
-            document.dispatchEvent(recalcEvent);
+            triggerRecalculateIfAuto();
         }
         if (e.target.classList.contains('buffer-input')) {
             const idx = parseInt(e.target.dataset.idx);
             const val = parseFloat(e.target.value) || 0;
             window.timetableData[idx].buffer = val;
-            const recalcEvent = new CustomEvent('recalculate');
-            document.dispatchEvent(recalcEvent);
+            triggerRecalculateIfAuto();
         }
     });
 
@@ -352,15 +386,13 @@ function setupEventHandlers() {
         const val = parseFloat(defaultHaltSetting.value) || 0;
         defaultHaltInput.value = val;
         window.timetableData.forEach(row => { row.halt = val; });
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
     defaultBufferSetting.addEventListener('change', () => {
         const val = parseFloat(defaultBufferSetting.value) || 0;
         defaultBufferInput.value = val;
         window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
-        const recalcEvent = new CustomEvent('recalculate');
-        document.dispatchEvent(recalcEvent);
+        triggerRecalculateIfAuto();
     });
 }
 
