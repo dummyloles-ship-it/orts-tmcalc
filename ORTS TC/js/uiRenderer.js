@@ -23,11 +23,13 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
         }
     }
 
+    // Check if passing times are enabled
+    const usePassingTimes = window.isUsePassingTimesEnabled ? window.isUsePassingTimesEnabled() : false;
+
     // ---- Build body ----
     let tbodyHtml = '';
     timetableData.forEach((st, idx) => {
         const isBeforeFirstStop = firstStopIndex !== -1 && idx < firstStopIndex;
-        // If no stop anywhere, treat all as before first stop (all disabled)
         const isActive = (firstStopIndex !== -1 && idx >= firstStopIndex);
 
         tbodyHtml += '<tr class="station-row">';
@@ -40,7 +42,6 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
                     tbodyHtml += `<input type="checkbox" class="row-check" data-idx="${idx}" title="Select this station for multi-edit">`;
                     break;
                 case 'stop': {
-                    // Stop checkbox is always enabled, even before first stop (user can toggle to change first stop)
                     tbodyHtml += `<input type="checkbox" class="stop-check" data-idx="${idx}" ${st.stop ? 'checked' : ''} title="Enable/disable halt at this station">`;
                     break;
                 }
@@ -54,22 +55,31 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
                     tbodyHtml += `${st.distOrigin.toFixed(3)}`;
                     break;
                 case 'arrival': {
-                    // Show arrival only if active (from first stop onward)
-                    const displayVal = isActive ? (st.arrivalStr || '') : '';
+                    let displayVal = '';
+                    if (isActive && st.stop) {
+                        displayVal = st.arrivalStr || '';
+                    } else if (isActive && !st.stop && usePassingTimes && st.departureStr) {
+                        // Show passing time for skipped stations when enabled
+                        displayVal = `Pass at ${st.departureStr}`;
+                    }
                     tbodyHtml += displayVal;
                     break;
                 }
                 case 'departure': {
-                    const displayVal = isActive ? (st.departureStr || '') : '';
+                    let displayVal = '';
+                    if (isActive && st.stop) {
+                        displayVal = st.departureStr || '';
+                    } else if (isActive && !st.stop && usePassingTimes && st.departureStr) {
+                        // For skipped stations with passing times enabled, departure cell is empty
+                        displayVal = '';
+                    }
                     tbodyHtml += displayVal;
                     break;
                 }
                 case 'buffer': {
-                    // Buffer is disabled only if before first stop
                     if (st.isFirst) {
                         tbodyHtml += `<span class="buffer-placeholder" title="No buffer before the first station">-</span>`;
                     } else if (isBeforeFirstStop) {
-                        // Before first stop: disabled and forced 0
                         tbodyHtml += `<span class="buffer-placeholder" title="Buffer disabled before first stop">-</span>`;
                     } else {
                         const prevStation = timetableData[idx - 1].station;
@@ -79,14 +89,13 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
                     break;
                 }
                 case 'halt': {
-                    // Halt is disabled if before first stop, or if stop is false (but we still show disabled)
                     const isDisabled = isBeforeFirstStop || !st.stop;
                     const displayVal = st.stop ? (st.halt || 0) : 0;
                     tbodyHtml += `<input type="number" class="editable-input halt-input" data-idx="${idx}" value="${displayVal}" ${isDisabled ? 'disabled' : ''} step="0.5" min="0" title="Dwell time at ${st.station} (minutes)">`;
                     break;
                 }
                 case 'calc':
-                    if (idx === 0 || !st.calcDetails) {
+                    if (idx === 0 || !st.calcDetails || isBeforeFirstStop) {
                         tbodyHtml += `<span class="calc-placeholder">-</span>`;
                     } else {
                         tbodyHtml += `<button class="btn btn-outline btn-sm calc-btn" data-idx="${idx}" title="Show detailed calculation for segment leading to ${st.station}">📊</button>`;
@@ -115,7 +124,7 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
         const isDeparture = colKey === 'departure';
         const isLastCol = colIndex === visibleCols.length - 1;
 
-        if (isDeparture) return;
+        if (isDeparture && arrivalVisible) return;
 
         let colspan = 1;
         if (isArrival && departureVisible) {
@@ -126,6 +135,10 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
         let cellClass = `col-${colKey} summary-${colKey}`;
 
         if (isArrival) {
+            const totalTime = summary.totalTravelTime + summary.totalHalt + summary.totalBuffer;
+            cellContent = `${totalTime.toFixed(1)} min`;
+            cellClass += ' summary-travel-time';
+        } else if (isDeparture && !arrivalVisible) {
             const totalTime = summary.totalTravelTime + summary.totalHalt + summary.totalBuffer;
             cellContent = `${totalTime.toFixed(1)} min`;
             cellClass += ' summary-travel-time';
@@ -147,8 +160,6 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
                 case 'distOrigin':
                     cellContent = '-';
                     break;
-                case 'departure':
-                    break;
                 case 'buffer':
                     cellContent = summary.totalBuffer.toFixed(1);
                     break;
@@ -163,7 +174,7 @@ function renderTable(timetableData, columnVisibility, COLUMNS, tableHead, tableB
             }
         }
 
-        if (!isDeparture) {
+        if (!(isDeparture && arrivalVisible)) {
             tbodyHtml += `<td class="${cellClass}" data-col="${colKey}"${colspan > 1 ? ` colspan="${colspan}"` : ''}>${cellContent}</td>`;
             colIndex++;
         }
@@ -181,14 +192,20 @@ function calculateSummary(timetableData) {
     let totalHalt = 0;
     let totalTravelTime = 0;
 
+    let firstStopIndex = -1;
+    for (let i = 0; i < timetableData.length; i++) {
+        if (timetableData[i].stop === true) {
+            firstStopIndex = i;
+            break;
+        }
+    }
+
     timetableData.forEach((row, idx) => {
         totalDistPrev += row.distPrev || 0;
         if (idx === timetableData.length - 1) {
             totalDistOrigin = row.distOrigin || 0;
         }
-        // Only include buffer for stations that are active (from first stop onward)
-        // But summary uses raw data, so we include all buffers that are set (they are 0 for skipped)
-        if (!row.isFirst) {
+        if (!row.isFirst && (firstStopIndex === -1 || idx >= firstStopIndex)) {
             totalBuffer += row.buffer || 0;
         }
         if (row.stop) {
@@ -212,8 +229,7 @@ function calculateSummary(timetableData) {
 function renderColumnSelector(COLUMNS, columnVisibility, colSelector) {
     colSelector.innerHTML = '';
     COLUMNS.forEach(col => {
-        const alwaysVisible = ['station', 'arrival', 'departure'];
-        if (alwaysVisible.includes(col.key)) return;
+        if (col.key === 'station') return;
 
         const label = document.createElement('label');
         const cb = document.createElement('input');

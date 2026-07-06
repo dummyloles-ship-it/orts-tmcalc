@@ -209,20 +209,34 @@ function setupEventHandlers() {
         helpToggle.textContent = helpContent.classList.contains('open') ? '❓ Hide Help' : '❓ Help';
     });
 
-    // ---- Auto-update on source/destination time changes ----
-    departureInput.addEventListener('change', () => {
+    // ---- REAL-TIME INPUT EVENTS ----
+    departureInput.addEventListener('input', function() {
         if (departureInput.value) arrivalInput.value = '';
         triggerRecalculateIfAuto();
     });
-    arrivalInput.addEventListener('change', () => {
+    arrivalInput.addEventListener('input', function() {
         if (arrivalInput.value) departureInput.value = '';
         triggerRecalculateIfAuto();
     });
-    defaultSpeedInput.addEventListener('change', () => {
+    defaultSpeedInput.addEventListener('input', function() {
         triggerRecalculateIfAuto();
     });
-
-    // ---- Driver Performance input ----
+    defaultHaltInput.addEventListener('input', function() {
+        const val = parseFloat(defaultHaltInput.value) || 0;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { row.halt = val; });
+        }
+        defaultHaltSetting.value = val;
+        triggerRecalculateIfAuto();
+    });
+    defaultBufferInput.addEventListener('input', function() {
+        const val = parseFloat(defaultBufferInput.value) || 0;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
+        }
+        defaultBufferSetting.value = val;
+        triggerRecalculateIfAuto();
+    });
     driverPerformanceInput.addEventListener('input', function() {
         updatePerfDisplay();
         const val = parseFloat(this.value);
@@ -230,28 +244,40 @@ function setupEventHandlers() {
             triggerRecalculateIfAuto();
         }
     });
+    // Also keep change events for compatibility
+    departureInput.addEventListener('change', function() {
+        if (departureInput.value) arrivalInput.value = '';
+        triggerRecalculateIfAuto();
+    });
+    arrivalInput.addEventListener('change', function() {
+        if (arrivalInput.value) departureInput.value = '';
+        triggerRecalculateIfAuto();
+    });
+    defaultSpeedInput.addEventListener('change', function() {
+        triggerRecalculateIfAuto();
+    });
+    defaultHaltInput.addEventListener('change', function() {
+        const val = parseFloat(defaultHaltInput.value) || 0;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { row.halt = val; });
+        }
+        defaultHaltSetting.value = val;
+        triggerRecalculateIfAuto();
+    });
+    defaultBufferInput.addEventListener('change', function() {
+        const val = parseFloat(defaultBufferInput.value) || 0;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
+        }
+        defaultBufferSetting.value = val;
+        triggerRecalculateIfAuto();
+    });
     driverPerformanceInput.addEventListener('change', function() {
         updatePerfDisplay();
         const val = parseFloat(this.value);
         if (!isNaN(val) && val >= 0.01 && val <= 1) {
             triggerRecalculateIfAuto();
         }
-    });
-
-    // ---- Default halt/buffer inputs (top bar) ----
-    defaultHaltInput.addEventListener('input', () => {
-        const val = parseFloat(defaultHaltInput.value) || 0;
-        // Find first stop index to only apply to stations from there onward? Actually, apply to all, but render will disable for skipped.
-        window.timetableData.forEach(row => { row.halt = val; });
-        defaultHaltSetting.value = val;
-        triggerRecalculateIfAuto();
-    });
-    defaultBufferInput.addEventListener('input', () => {
-        const val = parseFloat(defaultBufferInput.value) || 0;
-        // Apply buffer to all stations (render will disable for skipped)
-        window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
-        defaultBufferSetting.value = val;
-        triggerRecalculateIfAuto();
     });
 
     // ---- Multi-edit ----
@@ -284,25 +310,17 @@ function setupEventHandlers() {
             return;
         }
         const val = parseFloat(multiBuffer.value) || 0;
-        // Find first stop index to only apply buffer to stations from there onward
-        let firstStopIndex = -1;
-        for (let i = 0; i < window.timetableData.length; i++) {
-            if (window.timetableData[i].stop === true) {
-                firstStopIndex = i;
-                break;
-            }
-        }
-        let appliedCount = 0;
         indices.forEach(idx => {
             const row = window.timetableData[idx];
-            if (row && !row.isFirst && (firstStopIndex === -1 || idx >= firstStopIndex)) {
+            if (row && !row.isFirst) {
                 row.buffer = val;
-                appliedCount++;
+            } else if (row && row.isFirst) {
+                statusMsg.textContent = `⚠️ Station "${row.station}" is the origin - no buffer before it.`;
             }
         });
         const recalcEvent = new CustomEvent('recalculate');
         document.dispatchEvent(recalcEvent);
-        statusMsg.textContent = `✅ Buffer set to ${val} min for ${appliedCount} segment(s). (skipped rows before first stop)`;
+        statusMsg.textContent = `✅ Buffer set to ${val} min for ${indices.length} segment(s).`;
     });
 
     // ---- Settings modal ----
@@ -319,7 +337,7 @@ function setupEventHandlers() {
 
     // ---- Theme preview (real-time, no save) ----
     themeSelect.addEventListener('change', function() {
-        document.body.className = this.value;
+        applyTheme(this.value);
     });
 
     // ---- Save Settings button ----
@@ -339,7 +357,7 @@ function setupEventHandlers() {
         }
     });
 
-    // ---- Table event delegation for dynamic elements ----
+    // ---- Table event delegation ----
     document.addEventListener('click', (e) => {
         const calcBtn = e.target.closest('.calc-btn');
         if (calcBtn) {
@@ -360,7 +378,6 @@ function setupEventHandlers() {
             if (row) {
                 row.stop = e.target.checked;
                 if (!row.stop) row.halt = 0;
-                // If this was the first stop and now unchecked, first stop will change; updateSchedule will handle it.
                 triggerRecalculateIfAuto();
             }
         }
@@ -371,8 +388,7 @@ function setupEventHandlers() {
         if (e.target.classList.contains('halt-input')) {
             const idx = parseInt(e.target.dataset.idx);
             const row = window.timetableData[idx];
-            // If halt is disabled, don't update (but the input is disabled anyway)
-            if (!row.stop && !row.isFirst) {
+            if (!row.stop) {
                 e.target.value = 0;
                 return;
             }
@@ -382,8 +398,6 @@ function setupEventHandlers() {
         }
         if (e.target.classList.contains('buffer-input')) {
             const idx = parseInt(e.target.dataset.idx);
-            // Check if this buffer is editable (only if after first stop)
-            // But we don't need to check here, because the input is disabled for non-editable ones
             const val = parseFloat(e.target.value) || 0;
             window.timetableData[idx].buffer = val;
             triggerRecalculateIfAuto();
@@ -391,17 +405,160 @@ function setupEventHandlers() {
     });
 
     // ---- Settings inputs (auto-sync) ----
+    defaultHaltSetting.addEventListener('input', () => {
+        const val = parseFloat(defaultHaltSetting.value) || 0;
+        defaultHaltInput.value = val;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { row.halt = val; });
+        }
+        triggerRecalculateIfAuto();
+    });
+    defaultBufferSetting.addEventListener('input', () => {
+        const val = parseFloat(defaultBufferSetting.value) || 0;
+        defaultBufferInput.value = val;
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
+        }
+        triggerRecalculateIfAuto();
+    });
     defaultHaltSetting.addEventListener('change', () => {
         const val = parseFloat(defaultHaltSetting.value) || 0;
         defaultHaltInput.value = val;
-        window.timetableData.forEach(row => { row.halt = val; });
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { row.halt = val; });
+        }
         triggerRecalculateIfAuto();
     });
     defaultBufferSetting.addEventListener('change', () => {
         const val = parseFloat(defaultBufferSetting.value) || 0;
         defaultBufferInput.value = val;
-        window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
+        if (window.timetableData) {
+            window.timetableData.forEach(row => { if (!row.isFirst) row.buffer = val; });
+        }
         triggerRecalculateIfAuto();
+    });
+
+    // ---- Main toggle events (including new Passing Times) ----
+    document.getElementById('autoCalculateMain').addEventListener('change', function() {
+        document.getElementById('autoCalculateSetting').checked = this.checked;
+        saveSettings();
+    });
+
+    document.getElementById('prioritizedColumnDisappearanceMain').addEventListener('change', function() {
+        document.getElementById('prioritizedColumnDisappearanceSetting').checked = this.checked;
+        const appEvent = new CustomEvent('applyResponsiveVisibility');
+        document.dispatchEvent(appEvent);
+        saveSettings();
+    });
+
+    // NEW: Use Passing Times toggle
+    document.getElementById('usePassingTimesMain').addEventListener('change', function() {
+        document.getElementById('usePassingTimesSetting').checked = this.checked;
+        // Re-render table to update display
+        renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+        saveSettings();
+    });
+
+    // ---- Import modal ----
+    const importBtn = document.getElementById('importBtn');
+    const importModal = document.getElementById('importModal');
+    const importModalClose = document.getElementById('importModalClose');
+    const importCloseBtn = document.getElementById('importCloseBtn');
+    const importExecuteBtn = document.getElementById('importExecuteBtn');
+    const importText = document.getElementById('importText');
+    const importFormat = document.getElementById('importFormat');
+    const importStatus = document.getElementById('importStatus');
+
+    importBtn.addEventListener('click', () => {
+        if (window.stations.length === 0) {
+            statusMsg.textContent = '⚠️ Please load a JSON file first before importing timings.';
+            return;
+        }
+        importModal.classList.add('active');
+        importText.value = '';
+        importStatus.textContent = '';
+    });
+
+    function closeImportModal() {
+        importModal.classList.remove('active');
+    }
+    importModalClose.addEventListener('click', closeImportModal);
+    importCloseBtn.addEventListener('click', closeImportModal);
+    importModal.addEventListener('click', (e) => {
+        if (e.target === importModal) closeImportModal();
+    });
+
+    importExecuteBtn.addEventListener('click', () => {
+        const text = importText.value;
+        if (!text.trim()) {
+            importStatus.textContent = '⚠️ Please paste some timings.';
+            importStatus.style.color = '#ef4444';
+            return;
+        }
+
+        const format = importFormat.value;
+        const stationNames = window.stations.map(s => s.name);
+
+        const result = parseImportText(text, format, stationNames);
+        if (result.error) {
+            importStatus.textContent = '❌ ' + result.error;
+            importStatus.style.color = '#ef4444';
+            return;
+        }
+
+        if (!result.results || result.results.length === 0) {
+            importStatus.textContent = '⚠️ No valid timings found. Please check your paste.';
+            importStatus.style.color = '#ef4444';
+            return;
+        }
+
+        const applyResult = applyImportedTimesWithBuffer(
+            window.timetableData,
+            result.results,
+            window.speedLimits || [],
+            parseFloat(defaultSpeedInput.value) || 0,
+            window.stations
+        );
+
+        if (applyResult.appliedCount === 0) {
+            importStatus.textContent = '⚠️ No timings could be applied. Check station name matches.';
+            importStatus.style.color = '#ef4444';
+            return;
+        }
+
+        // Set driver performance to 1.0
+        driverPerformanceInput.value = '1.0';
+        perfDisplay.textContent = '100%';
+
+        // Set default halt and buffer to 0
+        defaultHaltInput.value = '0';
+        defaultBufferInput.value = '0';
+        defaultHaltSetting.value = '0';
+        defaultBufferSetting.value = '0';
+
+        // Set source departure time
+        let firstActiveIdx = -1;
+        for (let i = 0; i < window.timetableData.length; i++) {
+            if (window.timetableData[i].stop) {
+                firstActiveIdx = i;
+                break;
+            }
+        }
+        if (firstActiveIdx !== -1 && window.timetableData[firstActiveIdx].departure !== undefined) {
+            const depTime = window.minutesToTime(window.timetableData[firstActiveIdx].departure);
+            const cleanDep = depTime.replace(/ \(Day \d+\)/, '');
+            departureInput.value = cleanDep;
+            arrivalInput.value = '';
+        }
+
+        renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+
+        importStatus.textContent = `✅ Applied ${applyResult.appliedCount} timings. Computed ${applyResult.haltCount || 0} halts. Inferred ${applyResult.bufferCount} buffers. Performance set to 1.0.`;
+        importStatus.style.color = '#16a34a';
+
+        setTimeout(() => {
+            closeImportModal();
+        }, 2000);
     });
 }
 

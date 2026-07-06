@@ -1,0 +1,24 @@
+/* ============================================================
+   MONOKAI THEME
+   ============================================================ */
+
+body {
+    --bg: #272822;
+    --bg-container: #1e1f1a;
+    --text: #f8f8f2;
+    --border: #3e3d32;
+    --input-bg: #3e3d32;
+    --input-border: #5a5948;
+    --th-bg: #3e3d32;
+    --th-text: #f8f8f2;
+    --td-border: #3e3d32;
+    --hover-bg: #3e3d32;
+    --status-bg: #3e3d32;
+    --btn-bg: #3e3d32;
+    --btn-text: #f8f8f2;
+    --buffer-prefix: #a6e22e;
+    --calc-note-bg: #3e3d32;
+    --switch-off: #5a5948;
+    --switch-on: #a6e22e;
+    --switch-knob: #f8f8f2;
+}

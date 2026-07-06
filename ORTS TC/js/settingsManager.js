@@ -8,7 +8,7 @@ function loadSettings() {
         const settings = JSON.parse(localStorage.getItem('timetableSettings'));
         if (settings) {
             if (settings.theme) {
-                document.body.className = settings.theme;
+                applyTheme(settings.theme);
                 document.getElementById('themeSelect').value = settings.theme;
             }
             if (settings.defaultHalt !== undefined) {
@@ -27,20 +27,37 @@ function loadSettings() {
             }
             if (settings.autoCalculate !== undefined) {
                 document.getElementById('autoCalculateSetting').checked = settings.autoCalculate;
+                document.getElementById('autoCalculateMain').checked = settings.autoCalculate;
             }
             if (settings.defaultPerformance !== undefined) {
                 document.getElementById('defaultPerformanceSetting').value = settings.defaultPerformance;
                 document.getElementById('driverPerformance').value = settings.defaultPerformance;
-                // Update display
                 const perfDisplay = document.getElementById('perfDisplay');
                 if (perfDisplay) {
                     perfDisplay.textContent = `${Math.round(settings.defaultPerformance * 100)}%`;
                 }
             }
+            if (settings.prioritizedColumnDisappearance !== undefined) {
+                document.getElementById('prioritizedColumnDisappearanceSetting').checked = settings.prioritizedColumnDisappearance;
+                document.getElementById('prioritizedColumnDisappearanceMain').checked = settings.prioritizedColumnDisappearance;
+            }
+            // NEW: Use Passing Times
+            if (settings.usePassingTimes !== undefined) {
+                document.getElementById('usePassingTimesSetting').checked = settings.usePassingTimes;
+                document.getElementById('usePassingTimesMain').checked = settings.usePassingTimes;
+            }
             return settings;
         }
     } catch (e) { /* ignore */ }
     return null;
+}
+
+function applyTheme(themeName) {
+    const stylesheet = document.getElementById('themeStylesheet');
+    if (stylesheet) {
+        stylesheet.href = `css/themes/${themeName}.css`;
+    }
+    document.body.className = `theme-${themeName}`;
 }
 
 function saveSettings() {
@@ -51,11 +68,15 @@ function saveSettings() {
         defaultFolder: document.getElementById('defaultFolderSetting').value || '',
         defaultHaltEnabled: document.getElementById('defaultHaltEnabledSetting').checked,
         autoCalculate: document.getElementById('autoCalculateSetting').checked,
-        defaultPerformance: parseFloat(document.getElementById('defaultPerformanceSetting').value) || 1.0
+        defaultPerformance: parseFloat(document.getElementById('defaultPerformanceSetting').value) || 1.0,
+        prioritizedColumnDisappearance: document.getElementById('prioritizedColumnDisappearanceSetting').checked,
+        usePassingTimes: document.getElementById('usePassingTimesSetting').checked  // NEW
     };
     localStorage.setItem('timetableSettings', JSON.stringify(settings));
+
     // Apply theme
-    document.body.className = settings.theme;
+    applyTheme(settings.theme);
+
     // Update top-bar inputs
     document.getElementById('defaultHalt').value = settings.defaultHalt;
     document.getElementById('defaultBuffer').value = settings.defaultBuffer;
@@ -64,20 +85,23 @@ function saveSettings() {
     if (perfDisplay) {
         perfDisplay.textContent = `${Math.round(settings.defaultPerformance * 100)}%`;
     }
+
+    // Sync main toggles
+    document.getElementById('autoCalculateMain').checked = settings.autoCalculate;
+    document.getElementById('prioritizedColumnDisappearanceMain').checked = settings.prioritizedColumnDisappearance;
+    document.getElementById('usePassingTimesMain').checked = settings.usePassingTimes;
+
     // If data loaded, apply new defaults
     if (window.timetableData && window.timetableData.length > 0) {
         window.timetableData.forEach((row, idx) => {
-            if (idx === 0) {
-                row.stop = true;
-            } else {
-                row.stop = settings.defaultHaltEnabled;
-            }
+            row.stop = settings.defaultHaltEnabled;
             row.halt = settings.defaultHalt;
             if (!row.isFirst) row.buffer = settings.defaultBuffer;
         });
         const recalcEvent = new CustomEvent('recalculate');
         document.dispatchEvent(recalcEvent);
     }
+
     document.getElementById('statusMsg').textContent = '✅ Settings saved.';
     return settings;
 }
@@ -87,7 +111,20 @@ function isAutoCalculateEnabled() {
     return checkbox ? checkbox.checked : true;
 }
 
+function isPrioritizedColumnDisappearanceEnabled() {
+    const checkbox = document.getElementById('prioritizedColumnDisappearanceSetting');
+    return checkbox ? checkbox.checked : true;
+}
+
+function isUsePassingTimesEnabled() {
+    const checkbox = document.getElementById('usePassingTimesSetting');
+    return checkbox ? checkbox.checked : false;
+}
+
 // Expose globally
 window.loadSettings = loadSettings;
 window.saveSettings = saveSettings;
 window.isAutoCalculateEnabled = isAutoCalculateEnabled;
+window.isPrioritizedColumnDisappearanceEnabled = isPrioritizedColumnDisappearanceEnabled;
+window.isUsePassingTimesEnabled = isUsePassingTimesEnabled;
+window.applyTheme = applyTheme;

@@ -1,0 +1,957 @@
+/* ============================================================
+   MAIN.CSS – Clean fixed‑percentage table (no scroll)
+   ============================================================ */
+
+/* ---- CSS Variables (fallback, overridden by themes) ---- */
+:root {
+    --bg: #0f172a;
+    --bg-container: #1e293b;
+    --text: #e2e8f0;
+    --border: #334155;
+    --input-bg: #2d3a4f;
+    --input-border: #475569;
+    --th-bg: #2d3a4f;
+    --th-text: #e2e8f0;
+    --td-border: #334155;
+    --hover-bg: #2d3a4f;
+    --status-bg: #2d3a4f;
+    --btn-bg: #2d3a4f;
+    --btn-text: #e2e8f0;
+    --buffer-prefix: #94a3b8;
+    --calc-note-bg: #2d3a4f;
+    --switch-off: #475569;
+    --switch-on: #2563eb;
+    --switch-knob: #ffffff;
+}
+
+/* ---- Base ---- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 10px 15px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    background: var(--bg-container);
+    padding: 14px 18px;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s;
+}
+
+/* ---- Header ---- */
+.app-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
+}
+
+.header-left h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.header-subtitle {
+    font-size: 13px;
+    opacity: 0.7;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.header-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+/* ---- Buttons ---- */
+.btn {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: none;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn:hover {
+    opacity: 0.8;
+}
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-success {
+    background: #16a34a;
+    color: white;
+}
+.btn-success:hover {
+    background: #15803d;
+}
+
+.btn-warning {
+    background: #d97706;
+    color: white;
+}
+.btn-warning:hover {
+    background: #b45309;
+}
+
+.btn-orts {
+    background: #7c3aed;
+    color: white;
+}
+.btn-orts:hover {
+    background: #6d28d9;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--input-border);
+    color: var(--text);
+}
+.btn-outline:hover {
+    background: var(--input-bg);
+}
+
+.btn-sm {
+    height: 24px;
+    font-size: 11px;
+    padding: 0 10px;
+}
+
+.btn-settings {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text);
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+.btn-settings:hover {
+    opacity: 0.7;
+}
+
+/* ---- File label ---- */
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+    transition: 0.2s;
+    height: 30px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.file-label:hover {
+    opacity: 0.8;
+}
+#fileInput {
+    display: none;
+}
+
+/* ---- Controls ---- */
+.controls-grid {
+    margin-bottom: 4px;
+}
+
+.controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.input-group label {
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.input-group input {
+    padding: 3px 8px;
+    border-radius: 16px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 13px;
+    height: 28px;
+    transition: 0.2s;
+    min-width: 0;
+}
+.input-group input.text-time {
+    width: 76px;
+    text-align: center;
+}
+.input-group input[type="number"] {
+    width: 56px;
+}
+.input-group input:focus {
+    outline: 2px solid #2563eb;
+    border-color: transparent;
+}
+
+.perf-display {
+    font-size: 12px;
+    opacity: 0.8;
+    min-width: 40px;
+}
+
+/* ---- Toggles Bar ---- */
+.toggles-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+    background: var(--status-bg);
+    border-radius: 8px;
+    padding: 6px 14px;
+    margin: 4px 0 6px 0;
+    transition: background 0.3s;
+}
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.multi-label {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.sep {
+    opacity: 0.3;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.hint {
+    font-size: 11px;
+    opacity: 0.6;
+}
+
+/* ---- SWITCH (iOS-style toggle) ---- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--switch-off);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.switch .slider::before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--switch-knob);
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.switch input:checked + .slider {
+    background-color: var(--switch-on);
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(18px);
+}
+
+.switch input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---- Switch in settings ---- */
+.switch-setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.switch-setting .switch-label {
+    font-weight: 500;
+    font-size: 14px;
+}
+.switch-setting .hint {
+    width: 100%;
+    margin-left: 52px;
+}
+
+/* ---- Status ---- */
+.status {
+    margin: 4px 0 8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--status-bg);
+    font-size: 13px;
+    transition: background 0.3s;
+}
+
+/* ---- Recalc note ---- */
+.recalc-note {
+    margin: 2px 0 6px;
+    font-size: 12px;
+    color: var(--buffer-prefix);
+    font-style: italic;
+    opacity: 0.75;
+}
+
+/* ---- Column Selector ---- */
+.col-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 4px 0 2px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+}
+.col-selector label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text);
+}
+.col-selector label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+/* ============================================================
+   TABLE – Clean fixed‑percentage, NO horizontal scroll
+   ============================================================ */
+
+.table-container {
+    overflow-x: auto;
+    margin: 6px 0 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--bg-container);
+}
+
+th,
+td {
+    padding: 4px 6px;
+    border-top: 1px solid var(--td-border);
+    border-right: 1px solid var(--td-border);
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+th:last-child,
+td:last-child {
+    border-right: none;
+}
+
+th {
+    background: var(--th-bg);
+    color: var(--th-text);
+    font-weight: 600;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    font-size: 12px;
+    padding: 4px 6px;
+    white-space: nowrap;
+}
+
+tr:hover td {
+    background: var(--hover-bg);
+}
+
+/* ---- Column width percentages (sum to 100%) ---- */
+/* Station gets the most space, others are balanced */
+
+.col-station {
+    width: 30%;
+    min-width: 80px;
+    max-width: 280px;
+}
+.col-station .station-name {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.col-arrival,
+.col-departure {
+    width: 9%;
+    min-width: 50px;
+    white-space: nowrap;
+}
+
+.col-buffer {
+    width: 10%;
+    min-width: 70px;
+    white-space: nowrap;
+}
+
+.col-halt {
+    width: 7%;
+    min-width: 50px;
+    white-space: nowrap;
+}
+
+.col-select {
+    width: 5%;
+    min-width: 32px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.col-distPrev,
+.col-distOrigin {
+    width: 7%;
+    min-width: 55px;
+    white-space: nowrap;
+}
+
+.col-stop {
+    width: 5%;
+    min-width: 32px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.col-calc {
+    width: 5%;
+    min-width: 32px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ---- Editable inputs ---- */
+.editable-input {
+    width: 100%;
+    max-width: 48px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    text-align: center;
+    height: 24px;
+    box-sizing: border-box;
+}
+.editable-input:disabled {
+    opacity: 0.4;
+    background: var(--td-border);
+    cursor: not-allowed;
+}
+.editable-input:focus {
+    outline: 2px solid #2563eb;
+    border-color: transparent;
+}
+
+.station-name {
+    font-weight: 500;
+    font-size: 13px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.buffer-prefix {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--buffer-prefix);
+    margin-right: 2px;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.buffer-placeholder,
+.calc-placeholder {
+    color: var(--buffer-prefix);
+    opacity: 0.5;
+}
+
+/* ---- Summary row ---- */
+.summary-row td {
+    background: var(--status-bg);
+    font-weight: 600;
+    border-top: 2px solid var(--border);
+}
+.summary-station {
+    font-weight: 700;
+}
+.summary-travel-time {
+    font-weight: 700;
+    color: #2563eb;
+}
+
+/* ---- Help ---- */
+.help-section {
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+}
+
+.help-toggle {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #2563eb;
+    padding: 2px 0;
+}
+
+.help-content {
+    display: none;
+    padding: 6px 0 2px;
+    line-height: 1.5;
+    font-size: 13px;
+}
+.help-content.open {
+    display: block;
+}
+.help-content ul {
+    padding-left: 18px;
+}
+.help-content li {
+    margin-bottom: 2px;
+}
+.help-content a {
+    color: #2563eb;
+    text-decoration: none;
+}
+.help-content a:hover {
+    text-decoration: underline;
+}
+
+/* ---- MODAL ---- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg-container);
+    color: var(--text);
+    border-radius: 14px;
+    max-width: 92vw;
+    max-height: 88vh;
+    padding: 18px 22px;
+    overflow: auto;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    position: relative;
+    width: 620px;
+}
+
+.modal-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+.modal-close:hover {
+    background: #dc2626;
+}
+
+.modal h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.modal-desc {
+    font-size: 13px;
+    opacity: 0.75;
+    margin-bottom: 10px;
+}
+
+.modal textarea {
+    width: 100%;
+    height: 280px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    padding: 8px;
+    background: var(--input-bg);
+    color: var(--text);
+    resize: vertical;
+}
+
+.modal .btn-group {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0 4px;
+    flex-wrap: wrap;
+}
+
+/* ---- Tab bar in modal ---- */
+.modal .tab-bar {
+    display: flex;
+    gap: 2px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 10px;
+}
+.modal .tab-bar button {
+    background: none;
+    border: none;
+    padding: 4px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: 0.2s;
+    color: var(--text);
+}
+.modal .tab-bar button.active {
+    border-bottom-color: #2563eb;
+    color: #2563eb;
+}
+.modal .tab-bar button:hover {
+    opacity: 0.7;
+}
+.modal .tab-content {
+    display: none;
+}
+.modal .tab-content.active {
+    display: block;
+}
+
+/* ---- Calc note ---- */
+.calc-avg-note {
+    background: var(--calc-note-bg);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin: 4px 0 6px;
+    font-size: 13px;
+}
+
+/* ---- Settings form ---- */
+.settings-group {
+    margin-bottom: 10px;
+}
+.settings-group label {
+    display: block;
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+.settings-group input,
+.settings-group select {
+    width: 100%;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 13px;
+}
+.settings-group select {
+    appearance: auto;
+}
+.settings-group .hint {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 1px;
+}
+
+/* ============================================================
+   RESPONSIVE – Keep table visible, shrink percentages
+   ============================================================ */
+
+@media (max-width: 700px) {
+    body {
+        padding: 6px 8px;
+    }
+    .container {
+        padding: 10px 12px;
+    }
+    .header-left h1 {
+        font-size: 16px;
+    }
+    .header-subtitle {
+        font-size: 11px;
+    }
+    .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .header-right {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    .controls-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+    .controls-row .input-group {
+        flex: 1;
+        min-width: 0;
+    }
+    .controls-row .input-group input {
+        flex: 1;
+        min-width: 50px;
+    }
+    .toggles-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 8px 12px;
+    }
+    .toggles-bar .input-group {
+        flex: 1;
+    }
+    .col-selector {
+        gap: 2px 8px;
+    }
+    .col-selector label {
+        font-size: 11px;
+    }
+    .modal {
+        padding: 12px 14px;
+        width: 95vw;
+    }
+
+    /* Smaller column widths on tablet */
+    .col-station {
+        width: 25%;
+        min-width: 60px;
+        max-width: 160px;
+    }
+    .col-arrival,
+    .col-departure {
+        width: 8%;
+        min-width: 40px;
+        font-size: 11px;
+    }
+    .col-buffer {
+        width: 9%;
+        min-width: 55px;
+    }
+    .col-halt {
+        width: 6%;
+        min-width: 38px;
+    }
+    .col-distPrev,
+    .col-distOrigin {
+        width: 6%;
+        min-width: 40px;
+        font-size: 11px;
+    }
+    .col-select,
+    .col-stop,
+    .col-calc {
+        width: 4%;
+        min-width: 26px;
+    }
+    .editable-input {
+        max-width: 36px;
+        font-size: 10px;
+        height: 20px;
+        padding: 1px 3px;
+    }
+    .buffer-prefix {
+        font-size: 12px;
+    }
+    .col-select input,
+    .col-stop input {
+        transform: scale(0.85);
+    }
+}
+
+@media (max-width: 480px) {
+    .header-right .btn,
+    .header-right .file-label {
+        font-size: 11px;
+        padding: 2px 8px;
+        height: 26px;
+    }
+    .input-group label {
+        font-size: 11px;
+    }
+    .input-group input {
+        font-size: 12px;
+        height: 24px;
+    }
+    .toggle-label {
+        font-size: 12px;
+    }
+    .switch {
+        width: 36px;
+        height: 20px;
+    }
+    .switch .slider::before {
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+    }
+    .switch input:checked + .slider::before {
+        transform: translateX(16px);
+    }
+
+    /* Even smaller columns on phone */
+    .col-station {
+        width: 22%;
+        min-width: 50px;
+        max-width: 120px;
+        font-size: 11px;
+    }
+    .col-arrival,
+    .col-departure {
+        width: 7%;
+        min-width: 32px;
+        font-size: 10px;
+    }
+    .col-buffer {
+        width: 8%;
+        min-width: 42px;
+    }
+    .col-halt {
+        width: 5%;
+        min-width: 30px;
+    }
+    .col-distPrev,
+    .col-distOrigin {
+        width: 5%;
+        min-width: 32px;
+        font-size: 10px;
+    }
+    .col-select,
+    .col-stop,
+    .col-calc {
+        width: 3%;
+        min-width: 22px;
+    }
+    .editable-input {
+        max-width: 28px;
+        font-size: 9px;
+        height: 18px;
+        padding: 1px 2px;
+    }
+    .buffer-prefix {
+        font-size: 10px;
+        margin-right: 1px;
+    }
+    .col-select input,
+    .col-stop input {
+        transform: scale(0.75);
+    }
+    .btn-sm {
+        font-size: 10px;
+        padding: 0 6px;
+        height: 20px;
+    }
+}

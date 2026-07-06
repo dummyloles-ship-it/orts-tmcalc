@@ -1,0 +1,24 @@
+/* ============================================================
+   DARK THEME (default)
+   ============================================================ */
+
+body {
+    --bg: #0f172a;
+    --bg-container: #1e293b;
+    --text: #e2e8f0;
+    --border: #334155;
+    --input-bg: #2d3a4f;
+    --input-border: #475569;
+    --th-bg: #2d3a4f;
+    --th-text: #e2e8f0;
+    --td-border: #334155;
+    --hover-bg: #2d3a4f;
+    --status-bg: #2d3a4f;
+    --btn-bg: #2d3a4f;
+    --btn-text: #e2e8f0;
+    --buffer-prefix: #94a3b8;
+    --calc-note-bg: #2d3a4f;
+    --switch-off: #475569;
+    --switch-on: #2563eb;
+    --switch-knob: #ffffff;
+}

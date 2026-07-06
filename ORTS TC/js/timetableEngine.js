@@ -174,8 +174,7 @@ function updateSchedule(timetableData, departureInput, arrivalInput, defaultSpee
         row.calcDetails = null;
         row.buffer = 0;
         row.halt = 0;
-        // Ensure stop is false (they shouldn't have stop anyway, but just in case)
-        row.stop = false;
+        row.stop = false; // ensure they remain disabled
     }
 
     // For stations from firstStopIndex onward, compute schedule
@@ -183,14 +182,12 @@ function updateSchedule(timetableData, departureInput, arrivalInput, defaultSpee
         const row = timetableData[i];
         if (i === firstStopIndex) {
             row.arrival = currentTime;
-            // Departure includes halt only if stop is true
             row.departure = currentTime + (row.stop ? (row.halt || 0) : 0);
             row.calcDetails = null;
         } else {
             const prevRow = timetableData[i - 1];
             const travelInfo = computeTravelTimeWithDetails(prevRow.distOrigin, row.distOrigin, parseFloat(defaultSpeedInput.value) || 0, speedLimits, perf);
             const travel = travelInfo.totalMinutes;
-            // Buffer is always applied after firstStopIndex, regardless of stop
             const buffer = row.buffer || 0;
             row.arrival = prevRow.departure + travel + buffer;
             row.departure = row.arrival + (row.stop ? (row.halt || 0) : 0);

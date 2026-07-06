@@ -1,0 +1,24 @@
+/* ============================================================
+   SOLARIZED THEME
+   ============================================================ */
+
+body {
+    --bg: #fdf6e3;
+    --bg-container: #fef9e7;
+    --text: #657b83;
+    --border: #e9d8c0;
+    --input-bg: #fdf6e3;
+    --input-border: #d1c4a0;
+    --th-bg: #eee8d5;
+    --th-text: #657b83;
+    --td-border: #e9d8c0;
+    --hover-bg: #f5efd9;
+    --status-bg: #eee8d5;
+    --btn-bg: #eee8d5;
+    --btn-text: #657b83;
+    --buffer-prefix: #839496;
+    --calc-note-bg: #eee8d5;
+    --switch-off: #d1c4a0;
+    --switch-on: #268bd2;
+    --switch-knob: #fdf6e3;
+}

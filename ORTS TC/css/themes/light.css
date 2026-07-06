@@ -1,0 +1,24 @@
+/* ============================================================
+   LIGHT THEME
+   ============================================================ */
+
+body {
+    --bg: #f1f5f9;
+    --bg-container: #ffffff;
+    --text: #1e293b;
+    --border: #e2e8f0;
+    --input-bg: #ffffff;
+    --input-border: #cbd5e1;
+    --th-bg: #f8fafc;
+    --th-text: #1e293b;
+    --td-border: #e2e8f0;
+    --hover-bg: #f8fafc;
+    --status-bg: #f1f5f9;
+    --btn-bg: #e2e8f0;
+    --btn-text: #1e293b;
+    --buffer-prefix: #64748b;
+    --calc-note-bg: #f1f5f9;
+    --switch-off: #cbd5e1;
+    --switch-on: #2563eb;
+    --switch-knob: #ffffff;
+}

@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewText = document.getElementById('previewText');
     const ortsText1 = document.getElementById('ortsText1');
     const ortsText2 = document.getElementById('ortsText2');
+    const autoCalculateMain = document.getElementById('autoCalculateMain');
+    const prioritizedColumnDisappearanceMain = document.getElementById('prioritizedColumnDisappearanceMain');
+    const usePassingTimesMain = document.getElementById('usePassingTimesMain');
 
     // ---- Load settings ----
     const loadedSettings = loadSettings();
@@ -37,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.stations = result.stations;
         window.speedLimits = result.speedLimits;
 
-        // Build timetable data with defaultHaltEnabled (no special lock for first station)
+        // Build timetable data with defaultHaltEnabled
         window.timetableData = buildTimetableData(window.stations, defaultHaltVal, defaultBufferVal, defaultHaltEnabled);
 
         // Initial schedule update (with performance)
@@ -137,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
             statusMsg.textContent = '⚠️ No data loaded. Please load a JSON file first.';
             return;
         }
-        // Generate ORTS preview with skip logic (only stops)
         ortsText1.value = getOrtsData(true);
         ortsText2.value = getOrtsData(false);
     });
@@ -152,15 +154,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const width = window.innerWidth;
         const { columnVisibility, userToggled } = window;
 
+        const prioritizedEnabled = document.getElementById('prioritizedColumnDisappearanceMain')?.checked !== false;
+
+        if (!prioritizedEnabled) {
+            COLUMNS.forEach(col => { columnVisibility[col.key] = true; });
+            const checkboxes = colSelector.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                const key = cb.dataset.key;
+                if (key && columnVisibility[key] !== undefined) {
+                    cb.checked = true;
+                }
+            });
+            return;
+        }
+
         const thresholds = {
-            'calc': 1050,
-            'distOrigin': 950,
-            'distPrev': 850,
-            'select': 750,
-            'buffer': 650,
-            'halt': 650,
-            'stop': 550
+            'calc': 1100,
+            'distOrigin': 1000,
+            'distPrev': 900,
+            'select': 800,
+            'halt': 700,
+            'buffer': 600,
+            'stop': 500
         };
+
+        Object.keys(thresholds).forEach(key => {
+            if (width >= thresholds[key] && columnVisibility[key] === true) {
+                userToggled[key] = false;
+            }
+        });
 
         Object.keys(thresholds).forEach(key => {
             if (!userToggled[key]) {
@@ -180,6 +202,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // ---- Main toggle events ----
+    autoCalculateMain.addEventListener('change', function() {
+        document.getElementById('autoCalculateSetting').checked = this.checked;
+        saveSettings();
+    });
+
+    prioritizedColumnDisappearanceMain.addEventListener('change', function() {
+        document.getElementById('prioritizedColumnDisappearanceSetting').checked = this.checked;
+        applyResponsiveVisibility();
+        renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+        saveSettings();
+    });
+
+    usePassingTimesMain.addEventListener('change', function() {
+        document.getElementById('usePassingTimesSetting').checked = this.checked;
+        renderTable(window.timetableData, window.columnVisibility, COLUMNS, tableHead, tableBody);
+        saveSettings();
+    });
 
     // ---- Window resize listener ----
     let resizeTimer;
@@ -206,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getTableData(includeSummary) {
         const visible = getVisibleColumnsForCopy();
         const rows = [];
+        const usePassingTimes = window.isUsePassingTimesEnabled ? window.isUsePassingTimesEnabled() : false;
 
         // Station rows
         window.timetableData.forEach((row, idx) => {
@@ -217,10 +259,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (col.key === 'distPrev') return row.distPrev.toFixed(3);
                 if (col.key === 'distOrigin') return row.distOrigin.toFixed(3);
                 if (col.key === 'arrival') {
-                    return isActive ? (row.arrivalStr || '') : '';
+                    if (isActive) {
+                        return row.arrivalStr || '';
+                    } else if (usePassingTimes && row.departureStr) {
+                        return `Pass at ${row.departureStr}`;
+                    }
+                    return '';
                 }
                 if (col.key === 'departure') {
-                    return isActive ? (row.departureStr || '') : '';
+                    if (isActive) {
+                        return row.departureStr || '';
+                    }
+                    return '';
                 }
                 if (col.key === 'buffer') return row.isFirst ? '-' : (row.buffer || 0).toFixed(1);
                 if (col.key === 'halt') return (row.stop ? (row.halt || 0) : 0).toFixed(1);
@@ -272,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 rowData.push(value);
             });
-            // Remove empty departure column data
             const filteredRowData = [];
             let skipNext = false;
             visible.forEach((col, idx) => {
@@ -300,35 +349,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
-     * Generate ORTS preview data with skip logic:
-     * - Stations+Timings: show all stations, but timings empty for skipped (no stop)
-     * - Timings Only: only show lines for active stations (with timings)
+     * Generate ORTS preview data with passing times support.
+     * Blank lines are always preserved for skipped stations.
      */
     function getOrtsData(includeStation) {
         const lines = [];
+        const usePassingTimes = window.isUsePassingTimesEnabled ? window.isUsePassingTimesEnabled() : false;
 
-        window.timetableData.forEach((row, idx) => {
+        window.timetableData.forEach((row) => {
             const isActive = row.stop;
             const arr = row.arrivalStr || '';
             const dep = row.departureStr || '';
             let timeRange = '';
-            if (arr && dep) {
+            let isPassing = false;
+
+            if (isActive && arr && dep) {
                 timeRange = `${arr}-${dep}`;
-            } else if (arr) {
-                timeRange = arr;
-            } else if (dep) {
-                timeRange = dep;
+            } else if (!isActive && usePassingTimes && dep) {
+                // Passing time: format as XXPXX
+                const cleanTime = dep.replace(/ \(Day \d+\)/, '');
+                timeRange = cleanTime.replace(':', 'P');
+                isPassing = true;
             }
 
             if (includeStation) {
-                // Always output station name, even if skipped (timings empty)
-                lines.push(`${row.station}\t${timeRange}`);
-            } else {
-                // Timings Only – only output if active and has time range
-                if (isActive && timeRange) {
-                    lines.push(timeRange);
+                // Stations + Timings: always output a line
+                if (isPassing) {
+                    lines.push(`${row.station}\t${timeRange}`);
+                } else if (isActive && timeRange) {
+                    lines.push(`${row.station}\t${timeRange}`);
+                } else {
+                    // Skipped station with no passing times -> blank line
+                    lines.push('');
                 }
-                // else skip this line entirely
+            } else {
+                // Timings Only: always output a line (blank for skipped without passing)
+                if (isPassing) {
+                    lines.push(timeRange);
+                } else if (isActive && timeRange) {
+                    lines.push(timeRange);
+                } else {
+                    lines.push(''); // blank line for skipped stations
+                }
             }
         });
 
@@ -342,12 +404,20 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalHalt = 0;
         let totalTravelTime = 0;
 
+        let firstStopIndex = -1;
+        for (let i = 0; i < timetableData.length; i++) {
+            if (timetableData[i].stop === true) {
+                firstStopIndex = i;
+                break;
+            }
+        }
+
         timetableData.forEach((row, idx) => {
             totalDistPrev += row.distPrev || 0;
             if (idx === timetableData.length - 1) {
                 totalDistOrigin = row.distOrigin || 0;
             }
-            if (!row.isFirst) {
+            if (!row.isFirst && (firstStopIndex === -1 || idx >= firstStopIndex)) {
                 totalBuffer += row.buffer || 0;
             }
             if (row.stop) {
@@ -373,11 +443,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.getOrtsData = getOrtsData;
     window.calculateSummary = calculateSummary;
 
+    // ---- Ensure renderTable and renderColumnSelector are globally available ----
+    window.renderTable = renderTable;
+    window.renderColumnSelector = renderColumnSelector;
+
     // ---- Setup event handlers ----
     setupEventHandlers();
 
     // ---- Initial state ----
     statusMsg.textContent = '📂 Load a JSON or .js file to begin.';
 
-    console.log('🚆 ORTS Timetable Mode Schedule Calculator initialized.');
+    console.log('🚆 Open Rails Timetable Schedule Calculator initialized.');
 });

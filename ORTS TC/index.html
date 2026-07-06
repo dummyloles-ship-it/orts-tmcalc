@@ -3,72 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORTS Timetable Mode Schedule Calculator</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Open Rails Timetable Schedule Calculator</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/themes/dark.css" id="themeStylesheet">
 </head>
 <body>
     <div class="container">
-        <!-- TOP BAR -->
-        <div class="top-bar">
-            <div class="top-left">
-                <h1>🚆 ORTS Timetable Mode Schedule Calculator</h1>
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>🚆 Open Rails Timetable</h1>
+                <span class="header-subtitle">Schedule Calculator</span>
                 <button class="btn-settings" id="settingsBtn" title="Settings">⚙️</button>
             </div>
-            <div class="top-right">
-                <label class="file-label" title="Load a JSON or .js file containing path chart data">
-                    📁 Load JSON
+            <div class="header-right">
+                <label class="file-label" title="Load JSON or .js file">📁 Load JSON
                     <input type="file" id="fileInput" accept=".json,.js">
                 </label>
-                <button class="btn btn-primary" id="recalcBtn" title="Force a recalculation of the timetable">🔄 Recalculate</button>
-                <button class="btn btn-success" id="previewBtn" title="Preview the full timetable with headers in TSV format">👁️ Preview</button>
-                <button class="btn btn-orts" id="ortsPreviewBtn" title="Preview for ORTS Timetable Editor – two formats available">🚆 OR TE Format</button>
+                <button class="btn btn-primary" id="recalcBtn" title="Recalculate timetable">🔄 Recalculate</button>
+                <button class="btn btn-success" id="previewBtn" title="Preview full table with headers">👁️ Preview</button>
+                <button class="btn btn-orts" id="ortsPreviewBtn" title="OR TE Format">🚆 OR TE</button>
+                <button class="btn btn-warning" id="importBtn" title="Import timings">📥 Import</button>
             </div>
-        </div>
+        </header>
 
         <!-- STATUS -->
         <div class="status" id="statusMsg">Load a JSON file to begin.</div>
 
-        <!-- CONTROLS ROW -->
-        <div class="controls-row">
-            <div class="input-group">
-                <label title="Set the departure time from the origin station (HH:mm)">Arrival at Source (HH:mm):</label>
-                <input type="text" class="text-time" id="departureTime" placeholder="HH:mm" maxlength="5" title="Departure time from the first station (HH:mm)">
-            </div>
-            <div class="input-group">
-                <label title="Set the arrival time at the destination station (HH:mm)">Arrival at Destination (HH:mm):</label>
-                <input type="text" class="text-time" id="arrivalTime" placeholder="HH:mm" maxlength="5" title="Arrival time at the last station (HH:mm)">
-            </div>
-            <div class="input-group">
-                <label title="Override all speed limits with this value (km/h). Leave empty to use speed limits from data.">Default speed (km/h):</label>
-                <input type="number" id="defaultSpeed" value="" placeholder="auto" step="1" min="1" style="width:70px;" title="Override all speed limits (km/h). Empty = use limits from data.">
-            </div>
-            <div class="input-group">
-                <label title="Default dwell time at each station (minutes)">Default halt (min):</label>
-                <input type="number" id="defaultHalt" value="2" step="0.5" min="0" style="width:55px;" title="Default dwell time at each station (minutes)">
-            </div>
-            <div class="input-group">
-                <label title="Default extra time added between each segment (minutes)">Default buffer (min):</label>
-                <input type="number" id="defaultBuffer" value="0" step="0.5" min="0" style="width:55px;" title="Default extra time between segments (minutes)">
-            </div>
-            <div class="input-group">
-                <label title="Driver performance factor (0.0–1.0). 1.0 = perfect driver, 0.0 = stopped">Driver Performance:</label>
-                <input type="number" id="driverPerformance" value="1.0" step="any" min="0.01" max="1" style="width:60px;" title="Driver performance factor (0.0–1.0). 1.0 = perfect driver">
-                <span style="font-size:12px; opacity:0.8; min-width:45px;" id="perfDisplay">100%</span>
+        <!-- MAIN CONTROLS -->
+        <div class="controls-grid">
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Arrival at Source</label>
+                    <input type="text" class="text-time" id="departureTime" placeholder="HH:mm" maxlength="5">
+                </div>
+                <div class="input-group">
+                    <label>Arrival at Destination</label>
+                    <input type="text" class="text-time" id="arrivalTime" placeholder="HH:mm" maxlength="5">
+                </div>
+                <div class="input-group">
+                    <label>Default speed</label>
+                    <input type="number" id="defaultSpeed" value="" placeholder="auto" step="1" min="1" style="width:60px;">
+                </div>
+                <div class="input-group">
+                    <label>Default halt</label>
+                    <input type="number" id="defaultHalt" value="0" step="0.5" min="0" style="width:50px;">
+                </div>
+                <div class="input-group">
+                    <label>Default buffer</label>
+                    <input type="number" id="defaultBuffer" value="0" step="0.5" min="0" style="width:50px;">
+                </div>
+                <div class="input-group">
+                    <label>Driver Performance</label>
+                    <input type="number" id="driverPerformance" value="1.0" step="any" min="0.01" max="1" style="width:55px;">
+                    <span id="perfDisplay" class="perf-display">100%</span>
+                </div>
             </div>
         </div>
 
-        <!-- MULTI-EDIT BAR -->
-        <div class="multi-edit-bar" id="multiEditBar">
-            <span style="font-weight:500; font-size:13px;">Multi‑edit:</span>
+        <!-- TOGGLES & MULTI-EDIT -->
+        <div class="toggles-bar">
+            <div class="toggle-group">
+                <label class="switch">
+                    <input type="checkbox" id="autoCalculateMain" checked>
+                    <span class="slider round"></span>
+                </label>
+                <span class="toggle-label">Auto‑calc</span>
+            </div>
+            <div class="toggle-group">
+                <label class="switch">
+                    <input type="checkbox" id="prioritizedColumnDisappearanceMain" checked>
+                    <span class="slider round"></span>
+                </label>
+                <span class="toggle-label">Auto‑hide columns</span>
+            </div>
+            <!-- NEW: Use Passing Times -->
+            <div class="toggle-group">
+                <label class="switch">
+                    <input type="checkbox" id="usePassingTimesMain">
+                    <span class="slider round"></span>
+                </label>
+                <span class="toggle-label">Use Passing times</span>
+            </div>
+            <span class="sep">|</span>
+            <span class="multi-label">Multi‑edit:</span>
             <div class="input-group">
-                <label title="Apply this halt value to all selected station rows">Halt (min):</label>
-                <input type="number" id="multiHalt" value="0" step="0.5" min="0" title="Halt value to apply to selected stations">
-                <button class="btn btn-outline" id="applyMultiHalt" title="Apply halt value to all selected station rows">Apply to all</button>
+                <label>Halt (min)</label>
+                <input type="number" id="multiHalt" value="0" step="0.5" min="0" style="width:50px;">
+                <button class="btn btn-outline btn-sm" id="applyMultiHalt">Apply</button>
             </div>
             <div class="input-group">
-                <label title="Apply this buffer value to all selected station rows (buffer is applied to the segment before the station)">Buffer (min):</label>
-                <input type="number" id="multiBuffer" value="0" step="0.5" min="0" title="Buffer value to apply to selected stations (non-origin)">
-                <button class="btn btn-outline" id="applyMultiBuffer" title="Apply buffer value to all selected station rows">Apply to all</button>
+                <label>Buffer (min)</label>
+                <input type="number" id="multiBuffer" value="0" step="0.5" min="0" style="width:50px;">
+                <button class="btn btn-outline btn-sm" id="applyMultiBuffer">Apply</button>
             </div>
             <span class="hint">(check rows in "Multi-edit" column)</span>
         </div>
@@ -78,7 +105,7 @@
 
         <!-- RECALC NOTE -->
         <div class="recalc-note" id="recalcNote">
-            Edit the halt times below. The schedule will recalculate automatically. If it doesn't update, press Recalculate to force update.
+            Edit halt times below. Schedule recalculates automatically. Press <strong>Recalculate</strong> if it doesn't update.
         </div>
 
         <!-- TABLE -->
@@ -93,23 +120,25 @@
         <div class="help-section">
             <button class="help-toggle" id="helpToggle" title="Show/hide help">❓ Help</button>
             <div class="help-content" id="helpContent">
-                <p><strong>🚆 ORTS Timetable Mode Schedule Calculator – Quick Guide</strong></p>
+                <p><strong>Quick Guide</strong></p>
                 <ul>
                     <li><strong>Load Data:</strong> Click <strong>"Load JSON"</strong> to import a <code>pathchartdata.js</code> or JSON file.</li>
-                    <li><strong>Stations:</strong> Multiple markers for a station are automatically averaged. Click the <strong>📊</strong> button on any row to see the averaging details.</li>
-                    <li><strong>Speed Limits:</strong> Numeric boards (type 3/4) are used automatically. Set <strong>"Default speed"</strong> to override all limits (leave empty to use data).</li>
+                    <li><strong>Stations:</strong> Multiple markers are averaged. Click <strong>📊</strong> to see details.</li>
+                    <li><strong>Speed Limits:</strong> Boards (type 3/4) are used automatically. Set <strong>"Default speed"</strong> to override.</li>
                     <li><strong>Timing:</strong> Enter either <strong>"Arrival at Source"</strong> or <strong>"Arrival at Destination"</strong> – the other is computed. Both empty = starts at 00:00.</li>
-                    <li><strong>Halts:</strong> Toggle the <strong>"Halt"</strong> checkbox to enable/disable dwell time at each station. Unchecked = halt forced to 0 and station is skipped (no arrival/departure shown).</li>
-                    <li><strong>Buffer:</strong> The <strong>⬑</strong> icon indicates buffer <em>before</em> arriving at that station (between previous → current). Buffer is added on top of running time.</li>
-                    <li><strong>Driver Performance:</strong> A factor from 0.0 to 1.0. 1.0 = perfect driver (theoretical running time). 0.5 = half speed = double running time. 0.0 = train stopped. Buffer and halt are added on top.</li>
-                    <li><strong>Multi‑edit:</strong> Select rows with the <strong>"Multi-edit"</strong> checkbox, then choose <strong>"Apply to all"</strong> for Halt or Buffer.</li>
-                    <li><strong>Column Selection:</strong> Toggle any column visibility – Preview & Copy will only show visible columns.</li>
-                    <li><strong>Preview:</strong> <strong>"👁️ Preview"</strong> shows the full table (with headers) in TSV format. <strong>"🚆 OR TE Format"</strong> offers two formats: with or without station names – you can edit the text before copying.</li>
-                    <li><strong>Settings (⚙️):</strong> Change theme, default halt, default buffer, enable/disable halts by default, toggle automatic calculation, or save a folder reference. Theme changes preview instantly – click <strong>"Save Settings"</strong> to keep them.</li>
-                    <li><strong>Themes:</strong> Dark (default), Light, Solarized, Monokai, Ocean – choose your preference.</li>
+                    <li><strong>Halts:</strong> Toggle <strong>"Halt"</strong> to enable/disable dwell at each station. Unchecked = station skipped.</li>
+                    <li><strong>Passing times:</strong> When <strong>"Use Passing times"</strong> is ON, skipped stations show <code>Pass at HH:MM</code> and <code>XXPXX</code> in ORTE format.</li>
+                    <li><strong>Buffer:</strong> <strong>⬑</strong> icon indicates buffer <em>before</em> arriving at that station.</li>
+                    <li><strong>Driver Performance:</strong> 1.0 = perfect driver. 0.5 = half speed = double time. 0.0 = stopped.</li>
+                    <li><strong>Multi‑edit:</strong> Select rows with <strong>"Multi-edit"</strong> checkboxes, then apply Halt or Buffer.</li>
+                    <li><strong>Main Toggles:</strong> <strong>"Auto‑calc"</strong> for real‑time updates. <strong>"Auto‑hide columns"</strong> hides columns when window is narrow.</li>
+                    <li><strong>Column Selection:</strong> Toggle any column visibility – Preview & Copy only show visible columns.</li>
+                    <li><strong>Preview:</strong> <strong>"👁️ Preview"</strong> shows full table with headers in TSV. <strong>"🚆 OR TE"</strong> offers two formats.</li>
+                    <li><strong>Import:</strong> <strong>"📥 Import"</strong> pastes timings from Preview, Stations+Timings, or Timings Only formats.</li>
+                    <li><strong>Settings (⚙️):</strong> Theme, defaults, halts enabled by default, auto‑calc, auto‑hide columns, passing times, folder reference.</li>
                 </ul>
-                <p style="margin-top:6px;"><em>💡 Hover over any element for a tooltip.</em></p>
-                <p style="margin-top:8px;"><strong>📖 Manual:</strong> <a href="manual.pdf" target="_blank">View PDF Manual</a></p>
+                <p><em>💡 Hover over any element for a tooltip.</em></p>
+                <p><strong>📖 Manual:</strong> <a href="manual.pdf" target="_blank">View PDF Manual</a></p>
             </div>
         </div>
     </div>
@@ -117,44 +146,44 @@
     <!-- PREVIEW MODAL -->
     <div class="modal-overlay" id="previewModal">
         <div class="modal">
-            <button class="modal-close" id="modalClose" title="Close">✕ Close</button>
-            <h3 style="margin-bottom:8px;">📋 Full Preview (visible columns + headers)</h3>
+            <button class="modal-close" id="modalClose">✕ Close</button>
+            <h3>📋 Full Preview (visible columns + headers)</h3>
             <textarea id="previewText" readonly></textarea>
             <div class="btn-group">
-                <button class="btn btn-success" id="copyPreviewBtn" title="Copy to clipboard">📋 Copy</button>
-                <button class="btn btn-outline" id="closePreviewBtn" title="Close">Close</button>
+                <button class="btn btn-success" id="copyPreviewBtn">📋 Copy</button>
+                <button class="btn btn-outline" id="closePreviewBtn">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- ORTS PREVIEW MODAL (editable) -->
+    <!-- ORTS MODAL -->
     <div class="modal-overlay" id="ortsModal">
         <div class="modal">
-            <button class="modal-close" id="ortsModalClose" title="Close">✕ Close</button>
-            <h3 style="margin-bottom:8px;">🚆 OR TE Format Preview</h3>
+            <button class="modal-close" id="ortsModalClose">✕ Close</button>
+            <h3>🚆 OR TE Format Preview</h3>
             <div class="tab-bar">
-                <button class="tab-btn active" data-tab="tab1" title="Station names with Arrival and Departure times">Stations + Timings</button>
-                <button class="tab-btn" data-tab="tab2" title="Arrival and Departure times only (no station names)">Timings Only</button>
+                <button class="tab-btn active" data-tab="tab1">Stations + Timings</button>
+                <button class="tab-btn" data-tab="tab2">Timings Only</button>
             </div>
             <div class="tab-content active" id="tab1">
                 <textarea id="ortsText1"></textarea>
                 <div class="btn-group">
-                    <button class="btn btn-success" id="copyOrts1" title="Copy to clipboard">📋 Copy</button>
+                    <button class="btn btn-success" id="copyOrts1">📋 Copy</button>
                 </div>
             </div>
             <div class="tab-content" id="tab2">
                 <textarea id="ortsText2"></textarea>
                 <div class="btn-group">
-                    <button class="btn btn-success" id="copyOrts2" title="Copy to clipboard">📋 Copy</button>
+                    <button class="btn btn-success" id="copyOrts2">📋 Copy</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- CALCULATION DETAIL MODAL -->
+    <!-- CALC MODAL -->
     <div class="modal-overlay" id="calcModal">
         <div class="modal">
-            <button class="modal-close" id="calcModalClose" title="Close">✕ Close</button>
+            <button class="modal-close" id="calcModalClose">✕ Close</button>
             <h3 id="calcModalTitle">Speed Limit Breakdown</h3>
             <div id="calcModalBody"></div>
         </div>
@@ -163,59 +192,79 @@
     <!-- SETTINGS MODAL -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
-            <button class="modal-close" id="settingsModalClose" title="Close">✕ Close</button>
-            <h3 style="margin-bottom:8px;">⚙️ Settings</h3>
-            
+            <button class="modal-close" id="settingsModalClose">✕ Close</button>
+            <h3>⚙️ Settings</h3>
+
             <div class="settings-group">
                 <label for="themeSelect">Theme</label>
                 <select id="themeSelect">
-                    <option value="theme-dark">Dark</option>
-                    <option value="theme-light">Light</option>
-                    <option value="theme-solarized">Solarized</option>
-                    <option value="theme-monokai">Monokai</option>
-                    <option value="theme-ocean">Ocean</option>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="solarized">Solarized</option>
+                    <option value="monokai">Monokai</option>
+                    <option value="ocean">Ocean</option>
                 </select>
-                <div class="hint">Change the app's color scheme. Preview changes instantly.</div>
+                <div class="hint">Preview changes instantly. Save to keep.</div>
             </div>
-            
+
             <div class="settings-group">
                 <label for="defaultHaltSetting">Default Halt (min)</label>
-                <input type="number" id="defaultHaltSetting" step="0.5" min="0" value="2">
-                <div class="hint">Default dwell time applied to all stations on load.</div>
+                <input type="number" id="defaultHaltSetting" step="0.5" min="0" value="0">
             </div>
-            
+
             <div class="settings-group">
                 <label for="defaultBufferSetting">Default Buffer (min)</label>
                 <input type="number" id="defaultBufferSetting" step="0.5" min="0" value="0">
-                <div class="hint">Default extra time added between segments on load.</div>
             </div>
-            
+
             <div class="settings-group">
                 <label for="defaultPerformanceSetting">Default Driver Performance</label>
                 <input type="number" id="defaultPerformanceSetting" step="0.01" min="0.01" max="1" value="1.0">
-                <div class="hint">Default driver speed compliance factor (1.0 = perfect).</div>
             </div>
-            
-            <div class="settings-group">
-                <label for="defaultHaltEnabledSetting">
-                    <input type="checkbox" id="defaultHaltEnabledSetting"> Enable halts by default
+
+            <div class="settings-group switch-setting">
+                <label class="switch">
+                    <input type="checkbox" id="defaultHaltEnabledSetting">
+                    <span class="slider round"></span>
                 </label>
-                <div class="hint">When checked, halts are enabled for all stations on load.</div>
+                <span class="switch-label">Enable halts by default</span>
+                <div class="hint">Halts are enabled for all stations on load.</div>
             </div>
-            
-            <div class="settings-group">
-                <label for="autoCalculateSetting">
-                    <input type="checkbox" id="autoCalculateSetting" checked> Automatic calculation
+
+            <div class="settings-group switch-setting">
+                <label class="switch">
+                    <input type="checkbox" id="autoCalculateSetting" checked>
+                    <span class="slider round"></span>
                 </label>
-                <div class="hint">Auto-update timetable on any change. Disable to manually recalculate.</div>
+                <span class="switch-label">Automatic calculation</span>
+                <div class="hint">Auto-update on any change. Disable to manually recalculate.</div>
             </div>
-            
+
+            <div class="settings-group switch-setting">
+                <label class="switch">
+                    <input type="checkbox" id="prioritizedColumnDisappearanceSetting" checked>
+                    <span class="slider round"></span>
+                </label>
+                <span class="switch-label">Prioritized Column Disappearance</span>
+                <div class="hint">Hide columns when the window is narrow.</div>
+            </div>
+
+            <!-- NEW: Use Passing Times setting -->
+            <div class="settings-group switch-setting">
+                <label class="switch">
+                    <input type="checkbox" id="usePassingTimesSetting">
+                    <span class="slider round"></span>
+                </label>
+                <span class="switch-label">Use Passing times</span>
+                <div class="hint">Show "Pass at HH:MM" and "XXPXX" in ORTE format for skipped stations.</div>
+            </div>
+
             <div class="settings-group">
-                <label for="defaultFolderSetting">Default Folder (for your reference)</label>
-                <input type="text" id="defaultFolderSetting" placeholder="e.g. C:\MyRoutes\Data">
-                <div class="hint">Store a folder path for your reference (browsers cannot set this).</div>
+                <label for="defaultFolderSetting">Default Folder (reference)</label>
+                <input type="text" id="defaultFolderSetting" placeholder="C:\MyRoutes\Data">
+                <div class="hint">For your reference only.</div>
             </div>
-            
+
             <div class="btn-group">
                 <button class="btn btn-success" id="saveSettingsBtn">💾 Save Settings</button>
                 <button class="btn btn-outline" id="closeSettingsBtn">Close</button>
@@ -223,13 +272,40 @@
         </div>
     </div>
 
-    <!-- ===== SCRIPTS ===== -->
+    <!-- IMPORT MODAL -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <button class="modal-close" id="importModalClose">✕ Close</button>
+            <h3>📥 Import Timings</h3>
+            <p class="modal-desc">Paste timings from Preview, Stations+Timings, or Timings Only format.</p>
+            <div class="settings-group">
+                <label for="importFormat">Format</label>
+                <select id="importFormat">
+                    <option value="preview">Preview (TSV with headers)</option>
+                    <option value="stations_timings">Stations + Timings</option>
+                    <option value="timings_only">Timings Only</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="importText">Timings Data</label>
+                <textarea id="importText" rows="10" style="width:100%; font-family:monospace; font-size:12px; border:1px solid var(--input-border); border-radius:6px; padding:8px; background:var(--input-bg); color:var(--text); resize:vertical;" placeholder="Paste your timings here..."></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" id="importExecuteBtn">📥 Import</button>
+                <button class="btn btn-outline" id="importCloseBtn">Close</button>
+            </div>
+            <div id="importStatus" style="margin-top:8px; font-size:13px;"></div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
     <script src="js/config.js"></script>
     <script src="js/dataProcessor.js"></script>
     <script src="js/timetableEngine.js"></script>
     <script src="js/uiRenderer.js"></script>
     <script src="js/eventHandlers.js"></script>
     <script src="js/settingsManager.js"></script>
+    <script src="js/importManager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,24 @@
+/* ============================================================
+   OCEAN THEME
+   ============================================================ */
+
+body {
+    --bg: #0b1a2a;
+    --bg-container: #122b3e;
+    --text: #c8d9e6;
+    --border: #1a3a4f;
+    --input-bg: #1a3a4f;
+    --input-border: #2a5a7a;
+    --th-bg: #1a3a4f;
+    --th-text: #c8d9e6;
+    --td-border: #1a3a4f;
+    --hover-bg: #1a3a4f;
+    --status-bg: #1a3a4f;
+    --btn-bg: #1a3a4f;
+    --btn-text: #c8d9e6;
+    --buffer-prefix: #6ec3d6;
+    --calc-note-bg: #1a3a4f;
+    --switch-off: #2a5a7a;
+    --switch-on: #6ec3d6;
+    --switch-knob: #c8d9e6;
+}

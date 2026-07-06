@@ -20,12 +20,14 @@ const COLUMNS = [
 // ---- Default settings ----
 const DEFAULT_SETTINGS = {
     theme: 'theme-dark',
-    defaultHalt: 2,
+    defaultHalt: 0,
     defaultBuffer: 0,
     defaultFolder: '',
     defaultHaltEnabled: false,
     autoCalculate: true,
-    defaultPerformance: 1.0
+    defaultPerformance: 1.0,
+    prioritizedColumnDisappearance: true,
+    usePassingTimes: false  // NEW
 };
 
 // ---- Global state ----
